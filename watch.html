@@ -109,9 +109,13 @@
 
     function loadVideo(domain, btn = null) {
         if (!shikimoriId) return;
-        
-        // Прямая склейка ссылки по ID Шикимори — это то, что делает animesss
-        const videoUrl = `https://${domain}/find?shikimori_id=${shikimoriId}`;
+    
+        // Твой личный воркер-прокси
+        const proxy = "https://wandering-breeze-4077.eralinauryzbai.workers.dev";
+    
+        // Формируем ссылку через прокси
+        const videoUrl = `${proxy}/find?shikimori_id=${shikimoriId}&title=${encodeURIComponent(cleanName)}`;
+    
         document.getElementById('main-iframe').src = videoUrl;
 
         if (btn) {
