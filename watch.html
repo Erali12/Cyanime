@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyAnime — Player</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root { --accent: #00ffff; --bg: #0b0b0b; --surface: #121212; }
+        body { background: var(--bg); color: #e0e0e0; font-family: 'Inter', sans-serif; margin: 0; }
+        .wrapper { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+        /* Стили заголовка как на animesss */
+        .anime-info-header { margin-bottom: 30px; }
+        .anime-title { font-size: 2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; }
+        .anime-meta { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+
+        .main-grid { display: grid; grid-template-columns: 280px 1fr; gap: 30px; margin-bottom: 40px; }
+        .poster-side img { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        .content-side { background: var(--surface); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; }
+
+        /* Плеер (Главный узел) */
+        .player-section { margin-top: 30px; }
+        .player-container { 
+            position: relative; width: 100%; aspect-ratio: 16/9; 
+            background: #000; border-radius: 15px; overflow: hidden; 
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.1); border: 1px solid #222;
+        }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* Кнопки переключения зеркал (для Алматы критично) */
+        .mirror-switcher { display: flex; gap: 10px; margin-top: 15px; }
+        .m-btn { 
+            background: #1a1a1a; border: 1px solid #333; color: #777; 
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: 0.3s;
+        }
+        .m-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0, 255, 255, 0.05); }
+
+        @media (max-width: 850px) { .main-grid { grid-template-columns: 1fr; } .poster-side { display: none; } }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="anime-info-header">
+        <div id="meta" class="anime-meta">Загрузка...</div>
+        <h1 id="title" class="anime-title">...</h1>
+    </div>
+
+    <div class="main-grid">
+        <div class="poster-side">
+            <img id="poster" src="assets/Cyanime.jpg" alt="Постер">
+        </div>
+        <div class="content-side">
+            <h3 style="margin-top:0; color: var(--accent);">Сюжет</h3>
+            <div id="description" class="synopsis">Ожидание данных от серверов Jikan...</div>
+        </div>
+    </div>
+
+    <div class="player-section">
+        <div class="player-container">
+            <iframe id="main-iframe" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
+        </div>
+        <div class="mirror-switcher" id="mirrors">
+            <button class="m-btn active" onclick="loadVideo('aniqit.com', this)">Источник 1</button>
+            <button class="m-btn" onclick="loadVideo('vli.ph', this)">Источник 2</button>
+            <button class="m-btn" onclick="loadVideo('kodik.info', this)">Источник 3</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const animeName = urlParams.get('title') || 'Naruto';
+    const cleanName = animeName.split('/')[0].trim();
+    
+    let shikimoriId = null;
+
+    async function initPage() {
+        try {
+            // 1. Получаем данные через Шикимори (самый быстрый путь в KZ)
+            const res = await fetch(`https://shikimori.one/api/animes?search=${encodeURIComponent(cleanName)}&limit=1`);
+            const data = await res.json();
+            
+            if (data.length > 0) {
+                const anime = data[0];
+                shikimoriId = anime.id;
+                document.getElementById('title').innerText = anime.russian || anime.name;
+                document.getElementById('meta').innerText = `${anime.kind} | ${anime.score} ★ | ${anime.status}`;
+                document.getElementById('poster').src = `https://shikimori.one${anime.image.original}`;
+                
+                // Сразу загружаем видео
+                loadVideo('aniqit.com');
+            }
+
+            // 2. Описание из Jikan
+            fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(cleanName)}&limit=1`)
+                .then(r => r.json())
+                .then(r => {
+                    if(r.data[0]) document.getElementById('description').innerText = r.data[0].synopsis;
+                });
+
+        } catch (e) {
+            console.error("Ошибка инициализации:", e);
+        }
+    }
+
+    function loadVideo(domain, btn = null) {
+        if (!shikimoriId) return;
+        
+        // Прямая склейка ссылки по ID Шикимори — это то, что делает animesss
+        const videoUrl = `https://${domain}/find?shikimori_id=${shikimoriId}`;
+        document.getElementById('main-iframe').src = videoUrl;
+
+        if (btn) {
+            document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+    }
+
+    initPage();
+</script>
+
+</body>
+</html>
