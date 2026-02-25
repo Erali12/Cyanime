@@ -1,22 +1,39 @@
-// Конфигурация команды CyAnime
 const KODIK_TOKEN = 'cc25b08a2d09435ad1818ce358fd407d';
 const themeBtn = document.getElementById('theme-btn');
 const authBlock = document.getElementById('auth-block');
 const grid = document.getElementById('anime-list');
-const currentPage = document.body.getAttribute('data-page');
+const sectionTitle = document.querySelector('.section-title');
+const searchInput = document.getElementById('search-input');
 
-// 1. Тема (без изменений)
-if (localStorage.getItem('theme') === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
+// --- 1. ТЕМА (С ИСПРАВЛЕНИЕМ ЛУНЫ) ---
+function updateThemeIcons(theme) {
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+    
+    if (theme === 'dark') {
+        if (sunIcon) sunIcon.style.display = 'none';
+        if (moonIcon) moonIcon.style.display = 'block';
+    } else {
+        if (sunIcon) sunIcon.style.display = 'block';
+        if (moonIcon) moonIcon.style.display = 'none';
+    }
 }
-themeBtn.addEventListener('click', () => {
+
+// При загрузке страницы проверяем сохраненную тему
+const savedTheme = localStorage.getItem('theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+updateThemeIcons(savedTheme);
+
+themeBtn?.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+    updateThemeIcons(newTheme);
 });
 
-// 2. Авторизация (без изменений)
+// --- 2. АВТОРИЗАЦИЯ ---
 window.toggleAuth = function() {
     const isLoggedIn = authBlock.querySelector('span');
     authBlock.innerHTML = !isLoggedIn 
@@ -24,51 +41,84 @@ window.toggleAuth = function() {
         : `<button class="auth-btn" onclick="toggleAuth()">Войти</button>`;
 }
 
-// 3. Загрузка данных из KODIK API
-async function fetchAnime() {
-    // Базовый URL для списка аниме
-    // with_material_data=true позволяет сразу получить постеры и описания
-    let url = `https://kodikapi.com/list?token=${KODIK_TOKEN}&types=anime-serial,anime&with_material_data=true&limit=24`;
+// --- 3. ЛОГИКА ПОИСКА (ENTER) ---
+searchInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        }
+    }
+});
 
-    if (currentPage === 'ongoing') {
-        url += '&anime_status=ongoing';
-    } else if (currentPage === 'new') {
-        url += '&order=updated_at'; // Последние обновленные (новые серии)
+// --- 4. ЗАГРУЗКА ДАННЫХ ---
+async function fetchAnime() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchQuery = urlParams.get('q');
+    const currentTab = urlParams.get('tab') || 'ongoing'; 
+
+    let url = `https://kodikapi.com/list?token=${KODIK_TOKEN}&types=anime-serial&with_material_data=true&limit=100`;
+
+    document.querySelectorAll('.nav-tabs a').forEach(link => link.classList.remove('active'));
+
+    if (searchQuery) {
+        url = `https://kodikapi.com/search?token=${KODIK_TOKEN}&title=${encodeURIComponent(searchQuery)}&types=anime-serial&with_material_data=true`;
+        if (sectionTitle) sectionTitle.innerText = `Результаты по запросу: ${searchQuery}`;
+    } 
+    else if (currentTab === 'popular') {
+        url += '&sort=shikimori_rating'; 
+        if (sectionTitle) sectionTitle.innerText = 'Популярное в CyAnime';
+        document.querySelector('.nav-tabs a[href*="tab=popular"]')?.classList.add('active');
+    } 
+    else {
+        url += '&anime_status=ongoing'; 
+        if (sectionTitle) sectionTitle.innerText = 'Смотрят сейчас в CyAnime';
+        const homeBtn = document.querySelector('.nav-tabs a[href*="tab=ongoing"]') || document.querySelector('.nav-tabs a[href="index.html"]');
+        homeBtn?.classList.add('active');
     }
 
     try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error('Ошибка сети');
         const resData = await response.json();
         
-        // В Kodik данные лежат в поле .results
         if (resData.results && resData.results.length > 0) {
-            renderCards(resData.results);
+            const seenIds = new Set();
+            const uniqueAnime = resData.results.filter(anime => {
+                const sId = anime.shikimori_id;
+                if (!sId || seenIds.has(sId)) return false;
+                seenIds.add(sId);
+                return true;
+            });
+            renderCards(uniqueAnime.slice(0, 24));
         } else {
-            grid.innerHTML = '<p>Ничего не найдено</p>';
+            if (grid) grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding: 40px;">Ничего не найдено :(</p>';
         }
     } catch (e) {
-        console.error('Ошибка CyAnime:', e);
-        grid.innerHTML = '<p style="color:red; padding:20px;">Ошибка связи с базой Kodik</p>';
+        console.error('Ошибка:', e);
+        if (grid) {
+            grid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align:center; padding:50px;">
+                    <p style="color:var(--accent-color); font-size:1.2rem;">База Kodik отдыхает...</p>
+                    <button onclick="location.reload()" class="auth-btn" style="margin-top:10px;">Обновить</button>
+                </div>`;
+        }
     }
 }
 
-// 4. Отрисовка карточек
+// --- 5. ОТРИСОВКА КАРТОЧЕК ---
 function renderCards(data) {
+    if (!grid) return;
     grid.innerHTML = data.map(anime => {
-        // Берем данные из material_data (там постеры и описания)
         const material = anime.material_data || {};
         const title = material.anime_title || anime.title; 
-        const posterUrl = material.poster_url || 'assets/Cyanime.jpg'; // Заглушка, если нет постера
+        const posterUrl = material.poster_url || 'Assets/Cyanime.jpg';
         const rating = material.shikimori_rating ? `⭐ ${material.shikimori_rating}` : '⭐ 0.0';
         const year = material.year || anime.year || '';
 
-        // Передаем ID в watch.html, чтобы там сразу открыть нужный плеер
         return `
             <div class="card-stub" onclick="location.href='watch.html?id=${anime.id}'">
-                <img src="${posterUrl}" 
-                    alt="${title}" 
-                    class="anime-poster"
-                    onerror="this.src='assets/Cyanime.jpg';">
+                <img src="${posterUrl}" alt="${title}" class="anime-poster" onerror="this.src='Assets/Cyanime.jpg';">
                 <div class="card-info">
                     <div class="card-title">${title}</div>
                     <div class="card-rating">${rating} <span style="font-size: 0.8em; opacity: 0.7;">| ${year}</span></div>

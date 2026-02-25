@@ -3,139 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyAnime — Player</title>
+    <title>CyAnime — Просмотр</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        :root { --accent: #00ffff; --bg: #0b0b0b; --surface: #121212; }
-        body { background: var(--bg); color: #e0e0e0; font-family: 'Inter', sans-serif; margin: 0; }
-        .wrapper { max-width: 1100px; margin: 0 auto; padding: 20px; }
-
-        .anime-info-header { margin-bottom: 30px; }
-        .anime-title { font-size: 2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; }
-        .anime-meta { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
-
+        /* Специфичные стили для страницы плеера */
+        .anime-info-header { margin-bottom: 30px; margin-top: 30px; }
+        .anime-title { font-size: 2.2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; }
+        .anime-meta { color: var(--accent-color); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+        
         .main-grid { display: grid; grid-template-columns: 280px 1fr; gap: 30px; margin-bottom: 40px; }
         .poster-side img { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        .content-side { background: var(--surface); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .content-side { background: var(--card-bg); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
         .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; }
 
-        .player-section { margin-top: 30px; }
+        .player-section { margin-top: 30px; padding-bottom: 50px; }
         .player-container { 
             position: relative; width: 100%; aspect-ratio: 16/9; 
             background: #000; border-radius: 15px; overflow: hidden; 
-            box-shadow: 0 0 40px rgba(0, 255, 255, 0.1); border: 1px solid #222;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); border: 1px solid #222;
         }
         iframe { width: 100%; height: 100%; border: none; }
 
-        .mirror-switcher { display: flex; gap: 10px; margin-top: 15px; }
-        .m-btn { 
-            background: #1a1a1a; border: 1px solid #333; color: #777; 
-            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: 0.3s;
+        @media (max-width: 850px) { 
+            .main-grid { grid-template-columns: 1fr; } 
+            .poster-side { display: none; } 
+            .anime-title { font-size: 1.6rem; }
         }
-        .m-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0, 255, 255, 0.05); }
-
-        @media (max-width: 850px) { .main-grid { grid-template-columns: 1fr; } .poster-side { display: none; } }
     </style>
 </head>
-<body>
+<body data-page="player">
 
-<div class="wrapper">
-    <div class="anime-info-header">
-        <div id="meta" class="anime-meta">Синхронизация...</div>
-        <h1 id="title" class="anime-title">Загрузка тайтла...</h1>
-    </div>
-
-    <div class="main-grid">
-        <div class="poster-side">
-            <img id="poster" src="Assets/Cyanime.jpg" alt="Постер">
+    <header class="main-header">
+        <div class="header-top-wrapper">
+            <div class="header-content">
+                <div class="header-top">
+                    <div class="header-left">
+                        <a href="index.html" class="logo-section">
+                            <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
+                            <div class="logo-text">Cy<span>Anime</span></div>
+                        </a>
+                        <button class="btn-cyan">🍿 Смотрю</button>
+                    </div>
+                    <div class="header-right">
+                        <div class="user-section">
+                            <div id="auth-block"><button class="auth-btn" onclick="toggleAuth()">Войти</button></div>
+                            <button class="icon-btn"><img src="Assets/bell.png" class="header-icon" alt="Bell"></button>
+                        </div>
+                        <div class="settings-section">
+                            <button id="theme-btn" class="theme-toggle">
+                                <img src="Assets/sun.png" class="sun-icon header-icon" alt="Sun">
+                                <img src="Assets/Moon.png" class="moon-icon header-icon" alt="Moon" style="display:none;">
+                            </button>
+                            <button class="icon-btn"><img src="Assets/settings.png" class="header-icon" alt="Settings"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="content-side">
-            <h3 style="margin-top:0; color: var(--accent);">Сюжет</h3>
-            <div id="description" class="synopsis">Получаем данные из базы Kodik...</div>
+
+        <div class="header-bottom-wrapper">
+            <div class="header-content">
+                <div class="header-bottom">
+                    <div class="search-box">
+                        <input type="text" placeholder="Поиск аниме..." id="search-input">
+                    </div>
+                    <nav class="nav-tabs">
+                        <a href="index.html?tab=ongoing" class="nav-link">Смотрят сейчас</a>
+                        <a href="index.html?tab=popular" class="nav-link">Популярное</a>
+                    </nav>
+                    <div class="action-buttons">
+                        <button class="btn-filter">⚡ Фильтры</button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    </header>
 
-    <div class="player-section">
-        <div class="player-container">
-            <iframe id="main-iframe" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
+    <main class="container">
+        <div class="anime-info-header">
+            <div id="meta" class="anime-meta">Синхронизация...</div>
+            <h1 id="title" class="anime-title">Загрузка тайтла...</h1>
         </div>
-        <div class="mirror-switcher" id="mirrors">
-            <button class="m-btn active" onclick="switchMirror('kodik.info', this)">Источник 1</button>
-            <button class="m-btn" onclick="switchMirror('aniqit.com', this)">Источник 2</button>
-            <button class="m-btn" onclick="switchMirror('vli.ph', this)">Источник 3</button>
+
+        <div class="main-grid">
+            <div class="poster-side">
+                <img id="poster" src="Assets/Cyanime.jpg" alt="Постер">
+            </div>
+            <div class="content-side">
+                <h3 style="margin-top:0; color: var(--accent-color);">Сюжет</h3>
+                <div id="description" class="synopsis">Получаем данные из базы...</div>
+            </div>
         </div>
-    </div>
-</div>
 
-<script>
-    const KODIK_TOKEN = 'cc25b08a2d09435ad1818ce358fd407d';
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Получаем ID, который мы передали из основного списка
-    const animeId = urlParams.get('id'); 
-    let baseVideoLink = ""; // Здесь будет храниться оригинальная ссылка на плеер
+        <div class="player-section">
+            <div class="player-container">
+                <iframe id="main-iframe" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
+            </div>
+        </div>
+    </main>
 
-    async function initPage() {
-        if (!animeId) {
-            document.getElementById('title').innerText = "Ошибка: ID не найден";
-            return;
-        }
+    <script src="script.js"></script>
+    <script>
+        const wParams = new URLSearchParams(window.location.search);
+        const wId = wParams.get('id'); 
 
-        try {
-            // Запрашиваем данные напрямую у Kodik по ID
-            // search?id=...&with_material_data=true дает нам ВСЁ: и плеер, и описание, и постер
-            const response = await fetch(`https://kodikapi.com/search?token=${KODIK_TOKEN}&id=${animeId}&with_material_data=true`);
-            const data = await response.json();
-
-            if (data.results && data.results.length > 0) {
-                const anime = data.results[0];
-                const material = anime.material_data || {};
-
-                // 1. Заполняем текст и инфо
-                document.getElementById('title').innerText = material.anime_title || anime.title;
-                document.getElementById('meta').innerText = `${anime.type.replace('-', ' ')} | ${material.shikimori_rating || '0'} ★ | ${material.year || anime.year}`;
-                document.getElementById('description').innerText = material.description || "Описание временно отсутствует.";
+        async function init() {
+            if (!wId) return;
+            try {
+                const r = await fetch(`https://kodikapi.com/search?token=cc25b08a2d09435ad1818ce358fd407d&id=${wId}&with_material_data=true`);
+                const d = await r.json();
                 
-                // 2. Ставим постер
-                if (material.poster_url) {
-                    document.getElementById('poster').src = material.poster_url;
+                if (d.results?.length > 0) {
+                    const a = d.results[0];
+                    const m = a.material_data || {};
+                    
+                    document.getElementById('title').innerText = m.anime_title || a.title;
+                    document.getElementById('meta').innerText = `${a.type} | ${m.shikimori_rating || 0} ★ | ${m.year || a.year}`;
+                    document.getElementById('description').innerText = m.description || "Описания нет.";
+                    if (m.poster_url) document.getElementById('poster').src = m.poster_url;
+                    
+                    // ЛОГИКА ПАМЯТИ И ПЕРВОЙ СЕРИИ
+                    const savedEpisode = localStorage.getItem(`ep_${wId}`);
+                    let finalLink = a.link.startsWith('http') ? a.link : `https:${a.link}`;
+                    
+                    // Если есть сохраненная серия — прыгаем на неё, иначе строго на 1-ю
+                    const episodeToLoad = savedEpisode ? savedEpisode : "1";
+                    finalLink += (finalLink.includes('?') ? '&' : '?') + `episode=${episodeToLoad}`;
+
+                    document.getElementById('main-iframe').src = finalLink;
                 }
-
-                // 3. Сохраняем ссылку на видео и загружаем плеер
-                baseVideoLink = anime.link;
-                loadIframe(baseVideoLink);
-            } else {
-                document.getElementById('title').innerText = "Аниме не найдено в базе";
-            }
-        } catch (e) {
-            console.error("Ошибка CyAnime HQ:", e);
-            document.getElementById('description').innerText = "Произошла ошибка при загрузке данных.";
+            } catch (e) { console.error("Ошибка загрузки:", e); }
         }
-    }
 
-    function loadIframe(link) {
-        if (!link) return;
-        // Добавляем протокол, если его нет
-        const finalLink = link.startsWith('http') ? link : `https:${link}`;
-        document.getElementById('main-iframe').src = finalLink;
-    }
+        // Слушаем плеер для сохранения текущей серии
+        window.addEventListener('message', (event) => {
+            if (event.data.key === 'kodik_player_video_info') {
+                const ep = event.data.value.episode;
+                if (ep) {
+                    localStorage.setItem(`ep_${wId}`, ep);
+                }
+            }
+        });
 
-    // Функция смены зеркал (очень важно для стабильности в Казахстане)
-    function switchMirror(domain, btn) {
-        if (!baseVideoLink) return;
-
-        // Меняем домен в ссылке (например, kodik.info -> aniqit.com)
-        const newLink = baseVideoLink.replace(/kodik\.info|aniqit\.com|vli\.ph/g, domain);
-        loadIframe(newLink);
-
-        // Активная кнопка
-        document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
-
-    initPage();
-</script>
-
+        init();
+    </script>
 </body>
 </html>
