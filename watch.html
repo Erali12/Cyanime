@@ -10,7 +10,6 @@
         body { background: var(--bg); color: #e0e0e0; font-family: 'Inter', sans-serif; margin: 0; }
         .wrapper { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
-        /* Стили заголовка как на animesss */
         .anime-info-header { margin-bottom: 30px; }
         .anime-title { font-size: 2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; }
         .anime-meta { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
@@ -21,7 +20,6 @@
         .content-side { background: var(--surface); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
         .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; }
 
-        /* Плеер (Главный узел) */
         .player-section { margin-top: 30px; }
         .player-container { 
             position: relative; width: 100%; aspect-ratio: 16/9; 
@@ -30,7 +28,6 @@
         }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* Кнопки переключения зеркал (для Алматы критично) */
         .mirror-switcher { display: flex; gap: 10px; margin-top: 15px; }
         .m-btn { 
             background: #1a1a1a; border: 1px solid #333; color: #777; 
@@ -45,8 +42,8 @@
 
 <div class="wrapper">
     <div class="anime-info-header">
-        <div id="meta" class="anime-meta">Загрузка...</div>
-        <h1 id="title" class="anime-title">...</h1>
+        <div id="meta" class="anime-meta">Синхронизация...</div>
+        <h1 id="title" class="anime-title">Загрузка тайтла...</h1>
     </div>
 
     <div class="main-grid">
@@ -55,7 +52,7 @@
         </div>
         <div class="content-side">
             <h3 style="margin-top:0; color: var(--accent);">Сюжет</h3>
-            <div id="description" class="synopsis">Ожидание данных от серверов Jikan...</div>
+            <div id="description" class="synopsis">Получаем данные из базы Kodik...</div>
         </div>
     </div>
 
@@ -64,64 +61,77 @@
             <iframe id="main-iframe" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
         </div>
         <div class="mirror-switcher" id="mirrors">
-            <button class="m-btn active" onclick="loadVideo('aniqit.com', this)">Источник 1</button>
-            <button class="m-btn" onclick="loadVideo('vli.ph', this)">Источник 2</button>
-            <button class="m-btn" onclick="loadVideo('kodik.info', this)">Источник 3</button>
+            <button class="m-btn active" onclick="switchMirror('kodik.info', this)">Источник 1</button>
+            <button class="m-btn" onclick="switchMirror('aniqit.com', this)">Источник 2</button>
+            <button class="m-btn" onclick="switchMirror('vli.ph', this)">Источник 3</button>
         </div>
     </div>
 </div>
 
 <script>
+    const KODIK_TOKEN = 'cc25b08a2d09435ad1818ce358fd407d';
     const urlParams = new URLSearchParams(window.location.search);
-    const animeName = urlParams.get('title') || 'Naruto';
-    const cleanName = animeName.split('/')[0].trim();
     
-    let shikimoriId = null;
+    // Получаем ID, который мы передали из основного списка
+    const animeId = urlParams.get('id'); 
+    let baseVideoLink = ""; // Здесь будет храниться оригинальная ссылка на плеер
 
     async function initPage() {
+        if (!animeId) {
+            document.getElementById('title').innerText = "Ошибка: ID не найден";
+            return;
+        }
+
         try {
-            // 1. Получаем данные через Шикимори (самый быстрый путь в KZ)
-            const res = await fetch(`https://shikimori.one/api/animes?search=${encodeURIComponent(cleanName)}&limit=1`);
-            const data = await res.json();
-            
-            if (data.length > 0) {
-                const anime = data[0];
-                shikimoriId = anime.id;
-                document.getElementById('title').innerText = anime.russian || anime.name;
-                document.getElementById('meta').innerText = `${anime.kind} | ${anime.score} ★ | ${anime.status}`;
-                document.getElementById('poster').src = `https://shikimori.one${anime.image.original}`;
+            // Запрашиваем данные напрямую у Kodik по ID
+            // search?id=...&with_material_data=true дает нам ВСЁ: и плеер, и описание, и постер
+            const response = await fetch(`https://kodikapi.com/search?token=${KODIK_TOKEN}&id=${animeId}&with_material_data=true`);
+            const data = await response.json();
+
+            if (data.results && data.results.length > 0) {
+                const anime = data.results[0];
+                const material = anime.material_data || {};
+
+                // 1. Заполняем текст и инфо
+                document.getElementById('title').innerText = material.anime_title || anime.title;
+                document.getElementById('meta').innerText = `${anime.type.replace('-', ' ')} | ${material.shikimori_rating || '0'} ★ | ${material.year || anime.year}`;
+                document.getElementById('description').innerText = material.description || "Описание временно отсутствует.";
                 
-                // Сразу загружаем видео
-                loadVideo('aniqit.com');
+                // 2. Ставим постер
+                if (material.poster_url) {
+                    document.getElementById('poster').src = material.poster_url;
+                }
+
+                // 3. Сохраняем ссылку на видео и загружаем плеер
+                baseVideoLink = anime.link;
+                loadIframe(baseVideoLink);
+            } else {
+                document.getElementById('title').innerText = "Аниме не найдено в базе";
             }
-
-            // 2. Описание из Jikan
-            fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(cleanName)}&limit=1`)
-                .then(r => r.json())
-                .then(r => {
-                    if(r.data[0]) document.getElementById('description').innerText = r.data[0].synopsis;
-                });
-
         } catch (e) {
-            console.error("Ошибка инициализации:", e);
+            console.error("Ошибка CyAnime HQ:", e);
+            document.getElementById('description').innerText = "Произошла ошибка при загрузке данных.";
         }
     }
 
-    function loadVideo(domain, btn = null) {
-        if (!shikimoriId) return;
-    
-        // Твой личный воркер-прокси
-        const proxy = "https://wandering-breeze-4077.eralinauryzbai.workers.dev";
-    
-        // Формируем ссылку через прокси
-        const videoUrl = `${proxy}/find?shikimori_id=${shikimoriId}&title=${encodeURIComponent(cleanName)}`;
-    
-        document.getElementById('main-iframe').src = videoUrl;
+    function loadIframe(link) {
+        if (!link) return;
+        // Добавляем протокол, если его нет
+        const finalLink = link.startsWith('http') ? link : `https:${link}`;
+        document.getElementById('main-iframe').src = finalLink;
+    }
 
-        if (btn) {
-            document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
+    // Функция смены зеркал (очень важно для стабильности в Казахстане)
+    function switchMirror(domain, btn) {
+        if (!baseVideoLink) return;
+
+        // Меняем домен в ссылке (например, kodik.info -> aniqit.com)
+        const newLink = baseVideoLink.replace(/kodik\.info|aniqit\.com|vli\.ph/g, domain);
+        loadIframe(newLink);
+
+        // Активная кнопка
+        document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
     }
 
     initPage();
