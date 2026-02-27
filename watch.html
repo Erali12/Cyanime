@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <meta name="referrer" content="no-referrer">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CyAnime — Просмотр</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Специфичные стили для страницы плеера */
-        .anime-info-header { margin-bottom: 30px; margin-top: 30px; }
-        .anime-title { font-size: 2.2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; }
+        .anime-info-header { margin: 30px 0; }
+        .anime-title { font-size: 2.2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; line-height: 1.2; }
         .anime-meta { color: var(--accent-color); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
         
         .main-grid { display: grid; grid-template-columns: 280px 1fr; gap: 30px; margin-bottom: 40px; }
         .poster-side img { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
         .content-side { background: var(--card-bg); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; }
+        .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; margin-bottom: 20px; }
 
+        .translations-section { margin-top: 25px; }
+        .translation-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        
         .player-section { margin-top: 30px; padding-bottom: 50px; }
         .player-container { 
             position: relative; width: 100%; aspect-ratio: 16/9; 
@@ -26,9 +29,11 @@
         iframe { width: 100%; height: 100%; border: none; }
 
         @media (max-width: 850px) { 
-            .main-grid { grid-template-columns: 1fr; } 
+            .main-grid { grid-template-columns: 1fr; gap: 20px; } 
             .poster-side { display: none; } 
             .anime-title { font-size: 1.6rem; }
+            .content-side { padding: 15px; }
+            .player-container { border-radius: 0; margin-left: -15px; width: calc(100% + 30px); }
         }
     </style>
 </head>
@@ -43,11 +48,17 @@
                             <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
                             <div class="logo-text">Cy<span>Anime</span></div>
                         </a>
-                        <button class="btn-cyan">🍿 Смотрю</button>
+                        <button class="btn-cyan eye-btn" title="Смотрю">
+                            <img src="Assets/eye.png" alt="Смотрю" class="eye-icon">
+                        </button>
                     </div>
                     <div class="header-right">
                         <div class="user-section">
-                            <div id="auth-block"><button class="auth-btn" onclick="toggleAuth()">Войти</button></div>
+                            <div id="auth-block">
+                                <button class="auth-btn login-btn" onclick="toggleAuth()" title="Войти">
+                                    <img src="Assets/login.png" alt="Войти" class="login-icon">
+                                </button>
+                            </div>
                             <button class="icon-btn"><img src="Assets/bell.png" class="header-icon" alt="Bell"></button>
                         </div>
                         <div class="settings-section">
@@ -61,28 +72,11 @@
                 </div>
             </div>
         </div>
-
-        <div class="header-bottom-wrapper">
-            <div class="header-content">
-                <div class="header-bottom">
-                    <div class="search-box">
-                        <input type="text" placeholder="Поиск аниме..." id="search-input">
-                    </div>
-                    <nav class="nav-tabs">
-                        <a href="index.html?tab=ongoing" class="nav-link">Смотрят сейчас</a>
-                        <a href="index.html?tab=popular" class="nav-link">Популярное</a>
-                    </nav>
-                    <div class="action-buttons">
-                        <button class="btn-filter">⚡ Фильтры</button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </header>
 
     <main class="container">
         <div class="anime-info-header">
-            <div id="meta" class="anime-meta">Синхронизация...</div>
+            <div id="meta" class="anime-meta">Загрузка...</div>
             <h1 id="title" class="anime-title">Загрузка тайтла...</h1>
         </div>
 
@@ -92,7 +86,13 @@
             </div>
             <div class="content-side">
                 <h3 style="margin-top:0; color: var(--accent-color);">Сюжет</h3>
-                <div id="description" class="synopsis">Получаем данные из базы...</div>
+                <div id="description" class="synopsis">Получаем данные...</div>
+                
+                <div class="translations-section">
+                    <h4 style="color: #fff; margin-bottom: 10px;">Выберите озвучку:</h4>
+                    <div id="translation-list" class="translation-buttons">
+                        </div>
+                </div>
             </div>
         </div>
 
@@ -104,49 +104,6 @@
     </main>
 
     <script src="script.js"></script>
-    <script>
-        const wParams = new URLSearchParams(window.location.search);
-        const wId = wParams.get('id'); 
-
-        async function init() {
-            if (!wId) return;
-            try {
-                const r = await fetch(`https://kodikapi.com/search?token=cc25b08a2d09435ad1818ce358fd407d&id=${wId}&with_material_data=true`);
-                const d = await r.json();
-                
-                if (d.results?.length > 0) {
-                    const a = d.results[0];
-                    const m = a.material_data || {};
-                    
-                    document.getElementById('title').innerText = m.anime_title || a.title;
-                    document.getElementById('meta').innerText = `${a.type} | ${m.shikimori_rating || 0} ★ | ${m.year || a.year}`;
-                    document.getElementById('description').innerText = m.description || "Описания нет.";
-                    if (m.poster_url) document.getElementById('poster').src = m.poster_url;
-                    
-                    // ЛОГИКА ПАМЯТИ И ПЕРВОЙ СЕРИИ
-                    const savedEpisode = localStorage.getItem(`ep_${wId}`);
-                    let finalLink = a.link.startsWith('http') ? a.link : `https:${a.link}`;
-                    
-                    // Если есть сохраненная серия — прыгаем на неё, иначе строго на 1-ю
-                    const episodeToLoad = savedEpisode ? savedEpisode : "1";
-                    finalLink += (finalLink.includes('?') ? '&' : '?') + `episode=${episodeToLoad}`;
-
-                    document.getElementById('main-iframe').src = finalLink;
-                }
-            } catch (e) { console.error("Ошибка загрузки:", e); }
-        }
-
-        // Слушаем плеер для сохранения текущей серии
-        window.addEventListener('message', (event) => {
-            if (event.data.key === 'kodik_player_video_info') {
-                const ep = event.data.value.episode;
-                if (ep) {
-                    localStorage.setItem(`ep_${wId}`, ep);
-                }
-            }
-        });
-
-        init();
-    </script>
+    <script src="watch.js"></script>
 </body>
 </html>

@@ -18,13 +18,17 @@
                             <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
                             <div class="logo-text">Cy<span>Anime</span></div>
                         </a>
-                        <button class="btn-cyan">🍿 Смотрю</button>
+                        <button class="btn-cyan eye-btn" title="Смотрю">
+                            <img src="Assets/eye.png" alt="Смотрю" class="eye-icon">
+                        </button>
                     </div>
 
                     <div class="header-right">
                         <div class="user-section">
                             <div id="auth-block">
-                                <button class="auth-btn" onclick="toggleAuth()">Войти</button>
+                                <button class="auth-btn login-btn" onclick="toggleAuth()" title="Войти">
+                                    <img src="Assets/login.png" alt="Войти" class="login-icon">
+                                </button>
                             </div>
                             <button class="icon-btn">
                                 <img src="Assets/bell.png" class="header-icon" alt="Bell">
@@ -56,16 +60,17 @@
                         <a href="index.html?tab=ongoing" class="nav-link" id="tab-ongoing">Смотрят сейчас</a>
                         <a href="index.html?tab=popular" class="nav-link" id="tab-popular">Популярное</a>
                     </nav>
-                    <div class="action-buttons">
-                        <button class="btn-filter">⚡ Фильтры</button>
-                    </div>
                 </div>
             </div>
         </div>
     </header>
     
     <main class="container">
-        <h2 class="section-title">Результаты поиска</h2>
+        <div class="section-header">
+            <h2 class="section-title">Результаты поиска</h2>
+            <button class="btn-filter-main">⚡ Фильтры</button>
+        </div>
+
         <div id="anime-list" class="anime-grid">
             </div>
     </main>
