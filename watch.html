@@ -7,35 +7,62 @@
     <title>CyAnime — Просмотр</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Базовые стили (оставляем твои) */
         .anime-info-header { margin: 30px 0; }
         .anime-title { font-size: 2.2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; line-height: 1.2; }
         .anime-meta { color: var(--accent-color); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
-        
-        .main-grid { display: grid; grid-template-columns: 280px 1fr; gap: 30px; margin-bottom: 40px; }
-        .poster-side img { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        .content-side { background: var(--card-bg); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; margin-bottom: 20px; }
 
-        .translations-section { margin-top: 25px; }
-        .translation-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        /* 🔥 БЛОК 1: ПОСТЕР + ПАСПОРТ (ПК) 🔥 */
+        .top-block-grid { display: grid; grid-template-columns: 300px 1fr; gap: 30px; margin-bottom: 25px; }
+        .poster-wrapper img { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        .player-section { margin-top: 30px; padding-bottom: 50px; }
-        .player-container { 
-            position: relative; width: 100%; aspect-ratio: 16/9; 
-            background: #000; border-radius: 15px; overflow: hidden; 
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); border: 1px solid #222;
-        }
+        /* Стили самого Паспорта */
+        .anime-passport { background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 25px; border-left: 4px solid var(--accent-color); color: #fff; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+        .passport-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; margin-bottom: 20px; }
+        .passport-divider { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 20px; width: 100%; }
+        .passport-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .passport-list li { margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px; font-size: 1.05rem; }
+        .passport-list li:last-child { border-bottom: none; }
+        .passport-list li strong { color: var(--accent-color); margin-right: 15px; }
+
+        /* 🔥 БЛОК 2: ОПИСАНИЕ + ОЗВУЧКА 🔥 */
+        .content-block { background: var(--card-bg); padding: 30px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 30px; }
+        .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; margin-bottom: 25px; }
+        .translations-section { margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
+        .translation-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+
+        /* 🔥 БЛОК 3: ПЛЕЕР + ФРАНШИЗА 🔥 */
+        .player-block { margin-bottom: 50px; }
+        .player-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); border: 1px solid #222; }
         iframe { width: 100%; height: 100%; border: none; }
+        
+        /* Стили Франшизы */
+        .franchise-section { margin-top: 25px; background: rgba(255, 255, 255, 0.02); padding: 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .franchise-list { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 15px; }
+        .franchise-item { padding: 10px 18px; background: rgba(255,255,255,0.05); border-radius: 8px; color: #bbb; cursor: pointer; transition: 0.3s; font-size: 0.95rem; }
+        .franchise-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .franchise-item.active { border: 1px solid var(--accent-color); background: rgba(0, 255, 255, 0.1); color: var(--accent-color); font-weight: bold; box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); }
 
+        /* 🔥 АДАПТАЦИЯ ПОД МОБИЛКИ 🔥 */
         @media (max-width: 850px) { 
-            .main-grid { grid-template-columns: 1fr; gap: 20px; } 
-            .poster-side { display: none; } 
+            /* Блок 1: Постер и Паспорт в колонку */
+            .top-block-grid { grid-template-columns: 1fr; gap: 20px; } 
+            .poster-wrapper { text-align: center; }
+            .poster-wrapper img { max-width: 250px; /* Постер не растягиваем на весь экран */ margin: 0 auto; }
+            
+            /* Размеры текстов */
             .anime-title { font-size: 1.6rem; }
-            .content-side { padding: 15px; }
-            .player-container { border-radius: 0; margin-left: -15px; width: calc(100% + 30px); }
+            .content-block { padding: 20px; }
+            
+            /* Плеер без люфта */
+            .player-container { border-radius: 0; margin-left: -20px; width: calc(100% + 40px); }
+            
+            /* Франшиза компактнее */
+            .franchise-section { padding: 15px; }
+            .franchise-item { padding: 8px 12px; font-size: 0.85rem; }
         }
     </style>
+    <link rel="icon" type="image/png" href="Assets/favicon.png">
 </head>
 <body data-page="player">
 
@@ -48,9 +75,9 @@
                             <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
                             <div class="logo-text">Cy<span>Anime</span></div>
                         </a>
-                        <button class="btn-cyan eye-btn" title="Смотрю">
+                        <a href="history.html" class="btn-cyan eye-btn" title="Смотрю">
                             <img src="Assets/eye.png" alt="Смотрю" class="eye-icon">
-                        </button>
+                        </a>
                     </div>
                     <div class="header-right">
                         <div class="user-section">
@@ -80,30 +107,59 @@
             <h1 id="title" class="anime-title">Загрузка тайтла...</h1>
         </div>
 
-        <div class="main-grid">
-            <div class="poster-side">
+        <div class="top-block-grid">
+            <div class="poster-wrapper">
                 <img id="poster" src="Assets/Cyanime.jpg" alt="Постер">
             </div>
-            <div class="content-side">
-                <h3 style="margin-top:0; color: var(--accent-color);">Сюжет</h3>
-                <div id="description" class="synopsis">Получаем данные...</div>
-                
-                <div class="translations-section">
-                    <h4 style="color: #fff; margin-bottom: 10px;">Выберите озвучку:</h4>
-                    <div id="translation-list" class="translation-buttons">
-                        </div>
+            
+            <div class="passport-wrapper">
+                <div class="anime-passport">
+                    <div class="passport-header">
+                        <span class="duration" id="pass-duration">... мин.</span>
+                        <span class="episodes" id="pass-episodes">... / ... серий</span>
+                    </div>
+                    <hr class="passport-divider">
+                    <ul class="passport-list">
+                        <li><strong>Год:</strong> <span id="pass-year">...</span></li>
+                        <li><strong>Режиссер:</strong> <span id="pass-director">...</span></li>
+                        <li><strong>Студия:</strong> <span id="pass-studio">...</span></li>
+                        <li><strong>Жанры:</strong> <span id="pass-genres">...</span></li>
+                        <li><strong>Автор:</strong> <span id="pass-author">...</span></li>
+                    </ul>
                 </div>
             </div>
         </div>
 
-        <div class="player-section">
+        <div class="content-block">
+            <h3 style="margin-top:0; color: var(--accent-color);">Сюжет</h3>
+            <div id="description" class="synopsis">Получаем данные...</div>
+            
+            <div class="translations-section">
+                <h4 style="color: #fff; margin: 0;">Выберите озвучку:</h4>
+                <div id="translation-list" class="translation-buttons">
+                    </div>
+            </div>
+        </div>
+
+        <div class="player-block">
             <div class="player-container">
                 <iframe id="main-iframe" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
             </div>
+            
+            <div class="franchise-section">
+                <h3 style="margin: 0; color: #fff;">Хронология просмотра:</h3>
+                <div id="franchise-list" class="franchise-list">
+                    <div class="franchise-item">ТВ-1 (2020)</div>
+                    <div class="franchise-item active">Фильм (2021) — Вы тут</div>
+                    <div class="franchise-item">ТВ-2 (2023)</div>
+                </div>
+            </div>
         </div>
+
     </main>
 
     <script src="script.js"></script>
-    <script src="watch.js"></script>
+    <script type="module" src="watch.js"></script>
+    <script type="module" src="firebase-check.js"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CyAnime — Смотрят сейчас</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="Assets/favicon.png">
 </head>
 <body data-page="ongoing">
     <header class="main-header">
@@ -18,9 +19,9 @@
                             <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
                             <div class="logo-text">Cy<span>Anime</span></div>
                         </a>
-                        <button class="btn-cyan eye-btn" title="Смотрю">
+                        <a href="history.html" class="btn-cyan eye-btn" title="Смотрю">
                             <img src="Assets/eye.png" alt="Смотрю" class="eye-icon">
-                        </button>
+                        </a>
                     </div>
 
                     <div class="header-right">
@@ -76,5 +77,6 @@
     </main>
     
     <script src="script.js"></script>
+    <script type="module" src="firebase-check.js"></script>
 </body>
 </html>

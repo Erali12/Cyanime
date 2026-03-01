@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta name="referrer" content="no-referrer">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход / Регистрация - CyAnime</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="Assets/favicon.png">
+</head>
+<body data-page="auth">
+    <header class="main-header">
+        <div class="header-top-wrapper">
+            <div class="header-content">
+                <div class="header-top">
+                    <div class="header-left">
+                        <a href="index.html" class="logo-section">
+                            <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
+                            <div class="logo-text">Cy<span>Anime</span></div>
+                        </a>
+                    </div>
+                    <div class="header-right">
+                        <div class="settings-section">
+                            <button id="theme-btn" class="theme-toggle">
+                                <img src="Assets/sun.png" class="sun-icon header-icon" alt="Sun">
+                                <img src="Assets/Moon.png" class="moon-icon header-icon" alt="Moon" style="display:none;">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="header-bottom-wrapper">
+            <div class="header-content">
+                <div class="header-bottom">
+                    <div class="search-box">
+                        <a href="index.html" class="btn-cyan back-btn">← Назад на главную</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <main class="container auth-page-main">
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <button id="login-tab" class="auth-tab active" onclick="switchAuth('login')">Вход</button>
+                <button id="reg-tab" class="auth-tab" onclick="switchAuth('reg')">Регистрация</button>
+            </div>
+            
+            <form id="auth-form" class="auth-form">
+                <div class="input-group">
+                    <input type="email" id="auth-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="auth-pass" placeholder="Пароль" required>
+                </div>
+                <button type="submit" id="auth-submit" class="btn-cyan auth-submit-btn">Поехали!</button>
+                
+                <div class="auth-divider">
+                    <span>или</span>
+                </div>
+
+                <button type="button" id="google-auth" class="btn-google">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+                    Войти через Google
+                </button>
+            </form>
+        </div>
+    </main>
+    
+    <script type="module" src="auth.js"></script>
+    <script src="script.js"></script>
+    <script type="module" src="firebase-check.js"></script>
+</body>
+</html>

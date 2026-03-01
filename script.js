@@ -33,13 +33,7 @@ themeBtn?.addEventListener('click', () => {
     updateThemeIcons(newTheme);
 });
 
-// --- 2. АВТОРИЗАЦИЯ ---
-window.toggleAuth = function() {
-    const isLoggedIn = authBlock.querySelector('span');
-    authBlock.innerHTML = !isLoggedIn 
-        ? `<span style="color:var(--accent-color); font-weight:bold; cursor:pointer;">👾 User_Kun</span>`
-        : `<button class="auth-btn" onclick="toggleAuth()">Войти</button>`;
-}
+
 
 // --- 3. ЛОГИКА ПОИСКА (ENTER) ---
 searchInput?.addEventListener('keypress', (e) => {
@@ -129,3 +123,5 @@ function renderCards(data) {
 }
 
 fetchAnime();
+
+

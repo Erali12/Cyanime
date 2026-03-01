@@ -4,22 +4,21 @@
     <meta name="referrer" content="no-referrer">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyAnime — Результаты поиска</title>
+    <title>История просмотров — CyAnime</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="Assets/favicon.png">
 </head>
-<body data-page="search">
+<body data-page="history">
     <header class="main-header">
         <div class="header-top-wrapper">
             <div class="header-content">
                 <div class="header-top">
-                    
                     <div class="header-left">
                         <a href="index.html" class="logo-section">
                             <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
                             <div class="logo-text">Cy<span>Anime</span></div>
                         </a>
-                        <a href="history.html" class="btn-cyan eye-btn" title="Смотрю">
+                        <a href="history.html" class="btn-cyan eye-btn active" title="Смотрю">
                             <img src="Assets/eye.png" alt="Смотрю" class="eye-icon">
                         </a>
                     </div>
@@ -27,10 +26,7 @@
                     <div class="header-right">
                         <div class="user-section">
                             <div id="auth-block">
-                                <button class="auth-btn login-btn" onclick="toggleAuth()" title="Войти">
-                                    <img src="Assets/login.png" alt="Войти" class="login-icon">
-                                </button>
-                            </div>
+                                </div>
                             <button class="icon-btn">
                                 <img src="Assets/bell.png" class="header-icon" alt="Bell">
                             </button>
@@ -46,7 +42,6 @@
                             </button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -55,11 +50,11 @@
             <div class="header-content">
                 <div class="header-bottom">
                     <div class="search-box">
-                        <input type="text" placeholder="Поиск аниме..." id="search-input">
+                        <input type="text" placeholder="Поиск в истории..." id="search-history">
                     </div>
                     <nav class="nav-tabs">
-                        <a href="index.html?tab=ongoing" class="nav-link" id="tab-ongoing">Смотрят сейчас</a>
-                        <a href="index.html?tab=popular" class="nav-link" id="tab-popular">Популярное</a>
+                        <a href="index.html?tab=ongoing" class="nav-link">Смотрят сейчас</a>
+                        <a href="index.html?tab=popular" class="nav-link">Популярное</a>
                     </nav>
                 </div>
             </div>
@@ -68,14 +63,15 @@
     
     <main class="container">
         <div class="section-header">
-            <h2 class="section-title">Результаты поиска</h2>
-            <button class="btn-filter-main">⚡ Фильтры</button>
+            <h2 class="section-title">Ваша история просмотров</h2>
         </div>
 
-        <div id="anime-list" class="anime-grid">
-            </div>
+        <div id="history-list" class="history-column">
+            <div class="loading-text">Загружаем вашу историю...</div>
+        </div>
     </main>
     
+    <script type="module" src="history.js"></script>
     <script src="script.js"></script>
     <script type="module" src="firebase-check.js"></script>
 </body>
