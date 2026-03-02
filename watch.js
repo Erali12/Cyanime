@@ -1,6 +1,5 @@
 // watch.js - Команда CyAnime (Интеграция с Firebase + Самосвал)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-// 🔥 ВАЖНО: Импортируем setDoc для создания документов, если их нет
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -15,26 +14,35 @@ const token = 'cc25b08a2d09435ad1818ce358fd407d';
 
 let currentAnimeName = "";
 let currentVoice = "";
+let currentUserUid = null; // 🔥 ФИКС: Жестко храним UID текущего пользователя
+
+// --- СЛУШАЕМ АВТОРИЗАЦИЮ (Исправляет баг с аккаунтами) ---
+onAuthStateChanged(auth, (user) => { 
+    if (user) {
+        currentUserUid = user.uid;
+        init(); 
+    } else {
+        currentUserUid = null;
+    }
+});
 
 // --- ЛОГИКА СОХРАНЕНИЯ В FIREBASE ---
 async function saveProgress(episode) {
-    const user = auth.currentUser;
-    
     // ЛОГ ДЛЯ ДЕБАГА
     console.log("🛠 Попытка сохранения:", {
-        uid: user?.uid,
+        uid: currentUserUid,
         id: animeId,
         name: currentAnimeName,
         ep: episode
     });
 
-    // Если серии нет (null/undefined), мы не портим базу
-    if (!user || !animeId || !currentAnimeName || !episode) {
+    // Используем currentUserUid вместо auth.currentUser
+    if (!currentUserUid || !animeId || !currentAnimeName || !episode) {
         console.warn("⚠️ Сохранение отменено: не все данные готовы.");
         return;
     }
 
-    const userRef = doc(db, "users", user.uid);
+    const userRef = doc(db, "users", currentUserUid);
     
     try {
         const userSnap = await getDoc(userRef);
@@ -59,8 +67,7 @@ async function saveProgress(episode) {
         // Ограничение истории
         if (history.length > 50) history.pop();
 
-        // 🔥 ФИКС: Используем setDoc с merge: true
-        // Это создаст документ, если его не существовало
+        // setDoc с merge: true создаст документ, если его не существовало
         await setDoc(userRef, { h: history }, { merge: true });
         
         console.log(`✅ CyAnime Cloud: Сохранена ${episode} серия!`);
@@ -103,7 +110,6 @@ async function updateUI(results) {
     document.getElementById('description').innerText = main.description || "Описания нет.";
     if (main.poster_url) document.getElementById('poster').src = main.poster_url;
 
-    // Паспорт аниме
     document.getElementById('pass-duration').innerText = ` ${main.duration || '?'} мин.`;
     const lastEp = a.last_episode || main.episodes_aired || a.episodes_count || '?';
     const totalEp = main.episodes_total || main.all_episodes || '?';
@@ -150,7 +156,6 @@ function loadPlayer(link) {
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const separator = finalLink.includes('?') ? '&' : '?';
     
-    // Загружаем плеер
     iframe.src = `${finalLink}${separator}episode=${savedEpisode}&translations=false`;
 }
 
@@ -178,21 +183,17 @@ async function renderFranchise(title) {
     } catch (e) { console.error("Ошибка франшизы:", e); }
 }
 
-// ГЛАВНЫЙ ФИКС: Слушаем только реальные события плеера
 window.addEventListener('message', (e) => {
     if (e.data.key === 'kodik_player_video_info') {
         const ep = e.data.value.episode;
         if (ep) {
             localStorage.setItem(`ep_${animeId}`, ep);
-            // Если имя аниме еще не подтянулось, подождем и попробуем снова
             if (!currentAnimeName) {
                 console.log("⏳ Имя аниме еще грузится, ждем для сохранения...");
                 setTimeout(() => saveProgress(ep), 1500);
             } else {
-                saveProgress(ep); // Сохраняем ТОЛЬКО когда плеер подтвердил серию
+                saveProgress(ep);
             }
         }
     }
 });
-
-onAuthStateChanged(auth, (user) => { if (user) init(); });
