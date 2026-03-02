@@ -40,8 +40,7 @@ async function saveProgress(episode, time = 0) {
         let history = [];
         
         if (userSnap.exists()) {
-            // 🔥 ФИКС: Всегда используем 'h', как договорились в плане
-            history = userSnap.data().h || []; 
+            history = userSnap.data().h || []; // Используем единый ключ 'h'
         }
         
         history = history.filter(item => item.id !== animeId);
@@ -90,7 +89,7 @@ async function init() {
     } catch (e) { console.error("Ошибка API:", e); }
 }
 
-// --- ЗАПОЛНЕНИЕ ИНТЕРФЕЙСА (Твой полный код) ---
+// --- ЗАПОЛНЕНИЕ ИНТЕРФЕЙСА (С сохранением всех деталей) ---
 async function updateUI(results) {
     const a = results[0];
     const main = a.material_data || {};
@@ -104,7 +103,7 @@ async function updateUI(results) {
         document.getElementById('poster').src = main.poster_url;
     }
 
-    // 🔥 ВОЗВРАЩАЕМ ПАСПОРТ АНИМЕ (То, что я упустил)
+    // ПАСПОРТ АНИМЕ
     if (document.getElementById('pass-duration')) 
         document.getElementById('pass-duration').innerText = ` ${main.duration || '?'} мин.`;
     
@@ -159,7 +158,7 @@ function loadPlayer(link) {
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(() => {
         iframe.contentWindow.postMessage({ key: 'kodik_player_get_info' }, '*');
-    }, 10000);
+    }, 10000); // Опрос плеера каждые 10 сек
 }
 
 // --- ФРАНШИЗА ---
@@ -197,7 +196,7 @@ window.addEventListener('message', (e) => {
             localStorage.setItem(`ep_${animeId}`, ep);
             localStorage.setItem(`time_${animeId}`, time);
             
-            // 🔥 УМНОЕ ОЖИДАНИЕ: Повторяем попытку, пока не подтянется имя
+            // 🔥 УМНОЕ ОЖИДАНИЕ: Ждем имя аниме перед сохранением
             const trySave = () => {
                 if (currentAnimeName) {
                     saveProgress(ep, time);

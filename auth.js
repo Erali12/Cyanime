@@ -45,7 +45,7 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     try {
         if (type === 'reg') {
             const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-            // Создаем чистый профиль. Ключ 'h' — это наша история.
+            // Создаем чистый профиль. Используем ключ 'h' для истории
             await setDoc(doc(db, "users", userCredential.user.uid), {
                 h: [], 
                 p: { theme: 'dark' }
@@ -61,7 +61,7 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     }
 });
 
-// 2. Логика Google (Исправленная)
+// 2. Логика Google (Защищенная)
 const googleBtn = document.getElementById('google-auth');
 if (googleBtn) {
     googleBtn.addEventListener('click', async () => {
@@ -70,8 +70,7 @@ if (googleBtn) {
             const user = result.user;
             const userRef = doc(db, "users", user.uid);
 
-            // 🔥 ПРОВЕРКА: Если пользователя нет в базе, создаем ему пустую историю
-            // Если он уже есть — ничего не затираем!
+            // 🔥 ПРОВЕРКА: Чтобы не затереть 'h' при повторном входе
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
                 await setDoc(userRef, {
@@ -79,7 +78,7 @@ if (googleBtn) {
                     p: { theme: 'dark' }
                 });
             } else {
-                // Если юзер уже был, просто обновляем тему на всякий случай, не трогая 'h'
+                // Только обновляем настройки, историю не трогаем
                 await setDoc(userRef, {
                     p: { theme: 'dark' }
                 }, { merge: true });
