@@ -1,4 +1,4 @@
-// watch.js - Команда CyAnime (Интеграция с Firebase + Самосвал)
+// watch.js - Команда CyAnime (Полная синхронизация + Таймкоды)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
@@ -14,7 +14,8 @@ const token = 'cc25b08a2d09435ad1818ce358fd407d';
 
 let currentAnimeName = "";
 let currentVoice = "";
-let currentUserUid = null; // 🔥 ФИКС: Жестко храним UID текущего пользователя
+let currentUserUid = null; // ФИКС: Жестко храним UID текущего пользователя
+let saveInterval = null;   // Для автоматической проверки таймкода
 
 // --- СЛУШАЕМ АВТОРИЗАЦИЮ (Исправляет баг с аккаунтами) ---
 onAuthStateChanged(auth, (user) => { 
@@ -26,17 +27,16 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- ЛОГИКА СОХРАНЕНИЯ В FIREBASE ---
-async function saveProgress(episode) {
+// --- ЛОГИКА СОХРАНЕНИЯ В FIREBASE (С таймкодом) ---
+async function saveProgress(episode, time = 0) {
     // ЛОГ ДЛЯ ДЕБАГА
     console.log("🛠 Попытка сохранения:", {
         uid: currentUserUid,
         id: animeId,
-        name: currentAnimeName,
-        ep: episode
+        ep: episode,
+        time: time
     });
 
-    // Используем currentUserUid вместо auth.currentUser
     if (!currentUserUid || !animeId || !currentAnimeName || !episode) {
         console.warn("⚠️ Сохранение отменено: не все данные готовы.");
         return;
@@ -61,7 +61,8 @@ async function saveProgress(episode) {
             n: currentAnimeName,
             v: currentVoice || "Оригинал",
             e: episode.toString(),
-            t: Date.now()
+            t: Date.now(),
+            time: time // 🔥 Сохраняем секунды просмотра
         });
 
         // Ограничение истории
@@ -70,7 +71,7 @@ async function saveProgress(episode) {
         // setDoc с merge: true создаст документ, если его не существовало
         await setDoc(userRef, { h: history }, { merge: true });
         
-        console.log(`✅ CyAnime Cloud: Сохранена ${episode} серия!`);
+        console.log(`✅ CyAnime Cloud: ${episode} сер. | ${time} сек.`);
     } catch (e) {
         console.error("❌ Ошибка синхронизации:", e);
     }
@@ -108,21 +109,21 @@ async function updateUI(results) {
     document.getElementById('title').innerText = currentAnimeName;
     document.getElementById('meta').innerText = `${a.type} | ${main.shikimori_rating || 0} ★ | ${main.year || a.year}`;
     document.getElementById('description').innerText = main.description || "Описания нет.";
-    if (main.poster_url) document.getElementById('poster').src = main.poster_url;
+    if (document.getElementById('poster')) document.getElementById('poster').src = main.poster_url;
 
-    document.getElementById('pass-duration').innerText = ` ${main.duration || '?'} мин.`;
+    if (document.getElementById('pass-duration')) document.getElementById('pass-duration').innerText = ` ${main.duration || '?'} мин.`;
     const lastEp = a.last_episode || main.episodes_aired || a.episodes_count || '?';
     const totalEp = main.episodes_total || main.all_episodes || '?';
-    document.getElementById('pass-episodes').innerText = totalEp === 1 ? ` Фильм` : ` ${lastEp} / ${totalEp} серий`;
-    document.getElementById('pass-year').innerText = main.year || a.year || 'Неизвестно';
-    document.getElementById('pass-director').innerText = main.directors ? main.directors.join(', ') : 'Неизвестно';
-    document.getElementById('pass-studio').innerText = main.studios ? main.studios.join(', ') : 'Неизвестно';
-    document.getElementById('pass-genres').innerText = (main.anime_genres || main.genres || []).join(', ') || 'Неизвестно';
-    document.getElementById('pass-author').innerText = (main.writers || main.authors || []).join(', ') || 'Неизвестно';
+    if (document.getElementById('pass-episodes')) document.getElementById('pass-episodes').innerText = totalEp === 1 ? ` Фильм` : ` ${lastEp} / ${totalEp} серий`;
+    if (document.getElementById('pass-year')) document.getElementById('pass-year').innerText = main.year || a.year || 'Неизвестно';
+    if (document.getElementById('pass-director')) document.getElementById('pass-director').innerText = main.directors ? main.directors.join(', ') : 'Неизвестно';
+    if (document.getElementById('pass-studio')) document.getElementById('pass-studio').innerText = main.studios ? main.studios.join(', ') : 'Неизвестно';
+    if (document.getElementById('pass-genres')) document.getElementById('pass-genres').innerText = (main.anime_genres || main.genres || []).join(', ') || 'Неизвестно';
+    if (document.getElementById('pass-author')) document.getElementById('pass-author').innerText = (main.writers || main.authors || []).join(', ') : 'Неизвестно';
 
     renderTranslations(results);
     loadPlayer(a.link);
-    if (main.anime_title) renderFranchise(main.anime_title);
+    if (main.anime_title && document.getElementById('franchise-list')) renderFranchise(main.anime_title);
 }
 
 function renderTranslations(results) {
@@ -150,13 +151,26 @@ function renderTranslations(results) {
     });
 }
 
+// --- ЗАГРУЗКА ПЛЕЕРА И АВТОМАТИЗАЦИЯ ---
 function loadPlayer(link) {
     const iframe = document.getElementById('main-iframe');
+    // Берем сохраненные данные из локального хранилища
     const savedEpisode = localStorage.getItem(`ep_${animeId}`) || "1";
+    const savedTime = localStorage.getItem(`time_${animeId}`) || "0";
+    
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const separator = finalLink.includes('?') ? '&' : '?';
     
-    iframe.src = `${finalLink}${separator}episode=${savedEpisode}&translations=false`;
+    // 🔥 Передаем серию и время в iframe
+    iframe.src = `${finalLink}${separator}episode=${savedEpisode}&time=${savedTime}&translations=false`;
+    
+    // 🔥 АВТОМАТИЗАЦИЯ: Каждые 10 секунд спрашиваем прогресс у плеера
+    if (saveInterval) clearInterval(saveInterval);
+    saveInterval = setInterval(() => {
+        iframe.contentWindow.postMessage({
+            key: 'kodik_player_get_info'
+        }, '*');
+    }, 10000);
 }
 
 async function renderFranchise(title) {
@@ -183,16 +197,21 @@ async function renderFranchise(title) {
     } catch (e) { console.error("Ошибка франшизы:", e); }
 }
 
+// --- СЛУШАЕМ ОТВЕТЫ ОТ ПЛЕЕРА (Фикс таймкодов) ---
 window.addEventListener('message', (e) => {
     if (e.data.key === 'kodik_player_video_info') {
         const ep = e.data.value.episode;
+        const time = e.data.value.time; // 🔥 Время в секундах
+        
         if (ep) {
             localStorage.setItem(`ep_${animeId}`, ep);
+            localStorage.setItem(`time_${animeId}`, time); // 🔥 Локальное сохранение
+            
+            // Если имя аниме еще не подтянулось, подождем и попробуем снова
             if (!currentAnimeName) {
-                console.log("⏳ Имя аниме еще грузится, ждем для сохранения...");
-                setTimeout(() => saveProgress(ep), 1500);
+                setTimeout(() => saveProgress(ep, time), 1500);
             } else {
-                saveProgress(ep);
+                saveProgress(ep, time); // 🔥 Сохраняем серию и время
             }
         }
     }
