@@ -92,3 +92,14 @@ if (googleBtn) {
         }
     });
 }
+
+
+onAuthStateChanged(auth, (user) => { 
+    if (user) {
+        currentUserUid = user.uid;
+        console.log("✅ [DEBUG] Пользователь авторизован:", user.uid); // ДОБАВИТЬ ЭТО
+        init(); 
+    } else {
+        console.log("❌ [DEBUG] Пользователь НЕ вошел в аккаунт"); // И ЭТО
+    }
+});
