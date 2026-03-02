@@ -1,4 +1,4 @@
-// watch.js - Команда CyAnime (Полная синхронизация + Интерфейс + Облако)
+// watch.js - Команда CyAnime (Оптимизированная версия)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
@@ -11,7 +11,7 @@ const auth = getAuth(app);
 
 const wParams = new URLSearchParams(window.location.search);
 const animeId = wParams.get('id'); 
-const token = 'cc25b08a2d09435ad1818ce358fd407d';
+const token = 'cc25b08a2d09435ad1818ce358fd407d'; // Твой токен Kodik
 
 let currentAnimeName = "";
 let currentVoice = "";
@@ -21,56 +21,68 @@ let saveInterval = null;
 // --- СЛУШАЕМ АВТОРИЗАЦИЮ ---
 onAuthStateChanged(auth, (user) => { 
     if (user) {
-        currentUserUid = user.uid; //
-        console.log("✅ [DEBUG] Пользователь авторизован:", user.uid);
-        init(); 
+        currentUserUid = user.uid;
+        console.log("✅ [AUTH] Пользователь:", user.uid);
     } else {
         currentUserUid = null;
-        console.log("⚠️ [DEBUG] Гостевой режим");
-        init(); // Инициализируем даже для гостей, чтобы плеер работал
+        console.warn("⚠️ [AUTH] Гостевой режим (сохранение в облако недоступно)");
     }
+    // Запускаем инициализацию в любом случае
+    init();
 });
 
 // --- ЛОГИКА СОХРАНЕНИЯ В ОБЛАКО ---
 async function saveProgress(episode, time = 0) {
-    if (!currentUserUid || !animeId || !currentAnimeName || !episode) return;
+    // Проверка всех условий перед сохранением
+    if (!currentUserUid) return; // Нет юзера — не сохраняем
+    if (!animeId || !currentAnimeName || !episode) {
+        console.error("❌ [CLOUD] Пропуск сохранения: недостаточно данных", { animeId, currentAnimeName, episode });
+        return;
+    }
 
-    const userRef = doc(db, "users", currentUserUid); //
+    const userRef = doc(db, "users", currentUserUid);
     
     try {
-        const userSnap = await getDoc(userRef); //
+        const userSnap = await getDoc(userRef);
         let history = [];
         
         if (userSnap.exists()) {
-            history = userSnap.data().h || []; // Ключ 'h' для истории
+            history = userSnap.data().h || [];
         }
         
-        // Удаляем старую запись об этом аниме, чтобы поднять новую в начало
+        // Удаляем старую запись об этом аниме (чтобы не дублировать)
         history = history.filter(item => item.id !== animeId);
         
+        // Добавляем новую запись в начало
         history.unshift({
             id: animeId,
             n: currentAnimeName,
             v: currentVoice || "Оригинал",
             e: episode.toString(),
             t: Date.now(),
-            time: Math.floor(time) // Сохраняем целые секунды
+            time: Math.floor(time) 
         });
 
+        // Ограничиваем историю 50 записями
         if (history.length > 50) history.pop();
 
-        await setDoc(userRef, { h: history }, { merge: true }); //
-        console.log(`☁️ Синхронизация: ${episode} сер. | ${Math.floor(time)} сек.`);
+        // Запись в Firestore
+        await setDoc(userRef, { h: history }, { merge: true });
+        console.log(`☁️ [CLOUD] Синхронизировано: ${currentAnimeName} | Сер. ${episode} | ${Math.floor(time)} сек.`);
     } catch (e) {
-        console.error("❌ Ошибка Firestore:", e);
+        console.error("❌ [CLOUD] Ошибка записи в Firestore:", e);
     }
 }
 
 // --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ---
 async function init() {
-    if (!animeId) return;
+    if (!animeId) {
+        console.error("❌ [INIT] ID аниме отсутствует в URL");
+        return;
+    }
+
     try {
-        let response = await fetch(`https://kodikapi.com/search?token=${token}&id=${animeId}&with_material_data=true`); //
+        let response = await fetch(`https://kodikapi.com/search?token=${token}&id=${animeId}&with_material_data=true`);
         let data = await response.json();
         
         if (data.results && data.results.length > 0) {
@@ -78,7 +90,7 @@ async function init() {
             const shikiId = firstResult.shikimori_id;
 
             if (shikiId) {
-                const allRes = await fetch(`https://kodikapi.com/search?token=${token}&shikimori_id=${shikiId}&with_material_data=true`); //
+                const allRes = await fetch(`https://kodikapi.com/search?token=${token}&shikimori_id=${shikiId}&with_material_data=true`);
                 const allData = await allRes.json();
                 if (allData.results && allData.results.length > 0) {
                     updateUI(allData.results);
@@ -87,16 +99,17 @@ async function init() {
             }
             updateUI(data.results);
         }
-    } catch (e) { console.error("Ошибка API:", e); }
+    } catch (e) { console.error("❌ [INIT] Ошибка API Kodik:", e); }
 }
 
 // --- ЗАПОЛНЕНИЕ ИНТЕРФЕЙСА ---
 async function updateUI(results) {
     const a = results[0];
     const main = a.material_data || {};
-    currentAnimeName = main.anime_title || a.title; //
+    currentAnimeName = main.anime_title || a.title;
     
-    // Текстовые поля
+    console.log("📺 [UI] Загрузка аниме:", currentAnimeName);
+
     const elements = {
         'title': currentAnimeName,
         'meta': `${a.type} | ${main.shikimori_rating || 0} ★ | ${main.year || a.year}`,
@@ -114,9 +127,8 @@ async function updateUI(results) {
         if (el) el.innerText = elements[id];
     }
 
-    if (main.poster_url && document.getElementById('poster')) {
-        document.getElementById('poster').src = main.poster_url; //
-    }
+    const poster = document.getElementById('poster');
+    if (poster && main.poster_url) poster.src = main.poster_url;
 
     const lastEp = a.last_episode || main.episodes_aired || a.episodes_count || '?';
     const totalEp = main.episodes_total || main.all_episodes || '?';
@@ -125,18 +137,18 @@ async function updateUI(results) {
 
     renderTranslations(results);
     loadPlayer(a.link);
-    if (main.anime_title && document.getElementById('franchise-list')) renderFranchise(main.anime_title);
+    if (document.getElementById('franchise-list')) renderFranchise(currentAnimeName);
 }
 
 // --- ПЛЕЕР С ПОДДЕРЖКОЙ ОБЛАКА ---
 async function loadPlayer(link) {
     const iframe = document.getElementById('main-iframe');
-    
-    // 1. Проверка локально
+    if (!iframe) return;
+
     let savedEpisode = localStorage.getItem(`ep_${animeId}`);
     let savedTime = localStorage.getItem(`time_${animeId}`);
 
-    // 2. Если локально пусто — запрашиваем облако
+    // Если локально нет — тянем из облака
     if (!savedEpisode && currentUserUid) {
         try {
             const userSnap = await getDoc(doc(db, "users", currentUserUid));
@@ -146,10 +158,10 @@ async function loadPlayer(link) {
                 if (lastData) {
                     savedEpisode = lastData.e;
                     savedTime = lastData.time;
-                    console.log("☁️ Подтянуто из Firebase:", savedEpisode, "сер.");
+                    console.log("☁️ [LOAD] Подтянуто из Firebase:", savedEpisode, "сер.");
                 }
             }
-        } catch (e) { console.error("Ошибка облака:", e); }
+        } catch (e) { console.error("❌ [LOAD] Ошибка облака:", e); }
     }
 
     savedEpisode = savedEpisode || "1";
@@ -158,9 +170,10 @@ async function loadPlayer(link) {
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const separator = finalLink.includes('?') ? '&' : '?';
     
+    // Загружаем iframe
     iframe.src = `${finalLink}${separator}episode=${savedEpisode}&time=${savedTime}&translations=false`;
     
-    // Запускаем опрос плеера каждые 10 секунд
+    // Опрос плеера каждые 10 секунд
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(() => {
         iframe.contentWindow.postMessage({ key: 'kodik_player_get_info' }, '*');
@@ -193,7 +206,7 @@ async function renderFranchise(title) {
     const container = document.getElementById('franchise-list');
     if (!container) return;
     try {
-        const res = await fetch(`https://kodikapi.com/search?token=${token}&title=${encodeURIComponent(title)}&types=anime-serial,anime&with_material_data=true`); //
+        const res = await fetch(`https://kodikapi.com/search?token=${token}&title=${encodeURIComponent(title)}&types=anime-serial,anime&with_material_data=true`);
         const data = await res.json();
         if (!data.results) return;
         container.innerHTML = '';
@@ -210,23 +223,22 @@ async function renderFranchise(title) {
                 container.appendChild(div);
             }
         });
-    } catch (e) { console.error("Ошибка франшизы:", e); }
+    } catch (e) { console.error("❌ [FRANCHISE] Ошибка:", e); }
 }
 
-// --- СЛУШАЕМ ПЛЕЕР ---
+// --- СЛУШАЕМ СООБЩЕНИЯ ОТ ПЛЕЕРА ---
 window.addEventListener('message', (e) => {
     if (e.data.key === 'kodik_player_video_info') {
         const ep = e.data.value.episode;
-        const time = e.data.value.time; //
+        const time = e.data.value.time;
         
         if (ep) {
+            // 1. Сохраняем локально (всегда)
             localStorage.setItem(`ep_${animeId}`, ep);
             localStorage.setItem(`time_${animeId}`, time);
             
-            // Если имя аниме загрузилось — сохраняем
-            if (currentAnimeName) {
-                saveProgress(ep, time);
-            }
+            // 2. Отправляем в облако
+            saveProgress(ep, time);
         }
     }
 });
