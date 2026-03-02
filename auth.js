@@ -1,4 +1,4 @@
-// auth.js - Команда CyAnime (Система аккаунтов + Оптимизация "Самосвал")
+// auth.js - Команда CyAnime (Система аккаунтов + Фикс затирания данных)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
 import { 
     getAuth, 
@@ -7,23 +7,21 @@ import {
     GoogleAuthProvider, 
     signInWithPopup 
 } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
-// Инициализация
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-window.currentAuthType = 'login'; // По умолчанию
+window.currentAuthType = 'login';
 
-// Логика переключения Табов (Вход/Регистрация)
+// Переключение вкладок Вход/Регистрация
 window.switchAuth = (type) => {
     const loginTab = document.getElementById('login-tab');
     const regTab = document.getElementById('reg-tab');
     const submitBtn = document.getElementById('auth-submit');
-    
     window.currentAuthType = type;
     
     if (type === 'login') {
@@ -37,7 +35,7 @@ window.switchAuth = (type) => {
     }
 }
 
-// 1. Отправка формы (Email + Пароль)
+// 1. Логика формы (Email + Pass)
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('auth-email').value;
@@ -47,10 +45,10 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     try {
         if (type === 'reg') {
             const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-            // 🔥 ОПТИМИЗАЦИЯ: Создаем профиль с короткими ключами
+            // Создаем чистый профиль. Ключ 'h' — это наша история.
             await setDoc(doc(db, "users", userCredential.user.uid), {
-                s: [], // Список аниме
-                p: { theme: 'dark' } // Предпочтения
+                h: [], 
+                p: { theme: 'dark' }
             });
             alert('Регистрация успешна!');
         } else {
@@ -63,24 +61,34 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     }
 });
 
-// 2. Логика входа через Google
+// 2. Логика Google (Исправленная)
 const googleBtn = document.getElementById('google-auth');
 if (googleBtn) {
     googleBtn.addEventListener('click', async () => {
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
+            const userRef = doc(db, "users", user.uid);
 
-            // Создаем/обновляем профиль в Firestore
-            // Используем merge: true, чтобы не затереть существующие списки
-            await setDoc(doc(db, "users", user.uid), {
-                s: [], 
-                p: { theme: 'dark' }
-            }, { merge: true });
+            // 🔥 ПРОВЕРКА: Если пользователя нет в базе, создаем ему пустую историю
+            // Если он уже есть — ничего не затираем!
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                await setDoc(userRef, {
+                    h: [],
+                    p: { theme: 'dark' }
+                });
+            } else {
+                // Если юзер уже был, просто обновляем тему на всякий случай, не трогая 'h'
+                await setDoc(userRef, {
+                    p: { theme: 'dark' }
+                }, { merge: true });
+            }
 
             alert(`Привет, ${user.displayName}!`);
             window.location.href = 'index.html';
         } catch (error) {
+            console.error("Ошибка Google Auth:", error);
             alert('Ошибка Google: ' + error.message);
         }
     });
