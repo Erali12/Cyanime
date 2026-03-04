@@ -1,12 +1,7 @@
 // history.js - История просмотров CyAnime
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { firebaseConfig } from "./firebase-config.js";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+import { auth, db } from "./firebase-config.js";
 
 const historyContainer = document.getElementById('history-list');
 
@@ -45,7 +40,12 @@ onAuthStateChanged(auth, async (user) => {
             }
         } catch (e) {
             console.error("Ошибка загрузки истории:", e);
-            historyContainer.innerHTML = '<div class="empty-msg">Ошибка связи с облаком.</div>';
+            // Если ошибка прав доступа - сообщим аккуратно
+            if (e.code === 'permission-denied') {
+                historyContainer.innerHTML = '<div class="empty-msg">Доступ к истории запрещен.</div>';
+            } else {
+                historyContainer.innerHTML = '<div class="empty-msg">Ошибка связи с облаком.</div>';
+            }
         }
     } else {
         historyContainer.innerHTML = '<div class="empty-msg">Войдите в аккаунт, чтобы сохранять историю.</div>';

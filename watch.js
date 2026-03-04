@@ -1,13 +1,7 @@
 // watch.js - Команда CyAnime (Полная интеграция)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { firebaseConfig } from "./firebase-config.js";
-
-// Инициализация Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+import { auth, db } from "./firebase-config.js";
 
 const wParams = new URLSearchParams(window.location.search);
 const animeId = wParams.get('id'); 
@@ -43,7 +37,6 @@ async function saveProgress(episode, time = 0, season = "1") {
     localStorage.setItem(`season_${animeId}`, season);
 
     // 2. Облачное сохранение
-    // Если имя аниме еще не пришло из API, ставим "Загрузка..." вместо того, чтобы прерывать код
     const safeName = currentAnimeName || "Загрузка..."; 
 
     console.log(`💾 [FIREBASE TRY] Сохраняю: ${safeName}, ${epStr} серия, ${timeSec} сек.`);
@@ -123,7 +116,7 @@ async function updateUI(results) {
     loadPlayer(a.link);
 }
 
-// --- ПЛЕЕР: ТЕПЕРЬ С ПАРАМЕТРАМИ ИЗ ИНСТРУКЦИИ ---
+// --- ПЛЕЕР: С ПАРАМЕТРАМИ ---
 async function loadPlayer(link) {
     const iframe = document.getElementById('main-iframe');
     if (!iframe) return;
@@ -134,28 +127,28 @@ async function loadPlayer(link) {
 
     // Тянем из облака, если нет локально
     if (!savedEp && currentUserUid) {
-        const userSnap = await getDoc(doc(db, "users", currentUserUid));
-        if (userSnap.exists()) {
-            const lastData = (userSnap.data().h || []).find(item => item.id === animeId);
-            if (lastData) {
-                savedEp = lastData.e;
-                savedTime = lastData.time;
-                savedSeason = lastData.s || "1";
+        try {
+            const userSnap = await getDoc(doc(db, "users", currentUserUid));
+            if (userSnap.exists()) {
+                const lastData = (userSnap.data().h || []).find(item => item.id === animeId);
+                if (lastData) {
+                    savedEp = lastData.e;
+                    savedTime = lastData.time;
+                    savedSeason = lastData.s || "1";
+                }
             }
-        }
+        } catch(e) { console.error("Ошибка загрузки Cloud-сохранений:", e) }
     }
 
     // Подготовка ссылки
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const separator = finalLink.includes('?') ? '&' : '?';
     
-    // Параметры из твоей инструкции:
-    // episode, season, start_from
     const params = new URLSearchParams({
         episode: savedEp || "1",
         season: savedSeason,
         start_from: savedTime || "0",
-        translations: "false", // фиксируем текущую озвучку
+        translations: "false", 
         auto_translation: "false" 
     });
 
@@ -168,7 +161,7 @@ async function loadPlayer(link) {
     }, 10000);
 }
 
-// --- ОЗВУЧКИ (Твоя логика) ---
+// --- ОЗВУЧКИ ---
 function renderTranslations(results) {
     const container = document.getElementById('translation-list');
     if (!container) return;
@@ -189,7 +182,7 @@ function renderTranslations(results) {
     });
 }
 
-// --- ФРАНШИЗА (Твоя логика) ---
+// --- ФРАНШИЗА ---
 async function renderFranchise(title) {
     const container = document.getElementById('franchise-list');
     if (!container) return;
@@ -217,18 +210,15 @@ async function renderFranchise(title) {
 
 // --- ОБРАБОТКА ОТВЕТОВ ПЛЕЕРА ---
 window.addEventListener('message', (e) => {
-    // 1. Пытаемся понять, что пришло
     let data = e.data;
     if (typeof data === 'string') {
         try { data = JSON.parse(data); } catch (err) { return; }
     }
 
-    // ЛОГ ДЛЯ ТЕБЯ: выведет ключ любого сообщения от плеера
     if (data && data.key) {
         console.log("🔍 Поймал ключ:", data.key); 
     }
 
-    // 2. Проверяем именно данные о просмотре
     if (data.key === 'kodik_player_video_info' || data.method === 'setVideoInfo') {
         const val = data.value || data.get_video_info;
         if (!val) return;

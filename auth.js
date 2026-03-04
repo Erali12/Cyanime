@@ -1,18 +1,13 @@
 // auth.js - Команда CyAnime (Система аккаунтов + Фикс затирания данных)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
 import { 
-    getAuth, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     GoogleAuthProvider, 
     signInWithPopup 
 } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+import { auth, db } from "./firebase-config.js"; // Берем готовые из конфига
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 window.currentAuthType = 'login';
