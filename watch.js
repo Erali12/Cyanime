@@ -1,7 +1,7 @@
-// watch.js - Команда CyAnime (Полная интеграция)
-import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+// watch.js - Плеер и интерфейс просмотра CyAnime
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { auth, db } from "./firebase-config.js";
+import { auth } from "./firebase-config.js";
+import { saveToHistoryCloud } from "./history.js";
 
 const wParams = new URLSearchParams(window.location.search);
 const animeId = wParams.get('id'); 
@@ -12,60 +12,33 @@ let currentVoice = "";
 let currentUserUid = null;
 let saveInterval = null;
 
-// --- СЛУШАЕМ АВТОРИЗАЦИЮ ---
+// Слушаем авторизацию
 onAuthStateChanged(auth, (user) => { 
-    if (user) {
-        currentUserUid = user.uid;
-        console.log("✅ [AUTH] Пользователь:", user.uid);
-    } else {
-        currentUserUid = null;
-        console.warn("⚠️ [AUTH] Гостевой режим");
-    }
-    init(); // Запуск после проверки юзера
+    currentUserUid = user ? user.uid : null;
+    console.log(user ? "✅ Юзер авторизован" : "⚠️ Гость");
+    init(); 
 });
 
-// --- ЛОГИКА СОХРАНЕНИЯ (LocalStorage + Firebase) ---
-async function saveProgress(episode, time = 0, season = "1") {
+// --- СОХРАНЕНИЕ ---
+function triggerSave(episode, time = 0, season = "1") {
     if (!animeId || !currentUserUid) return;
 
-    const epStr = episode.toString();
-    const timeSec = Math.floor(time);
+    // 1. Локально (для быстрого подхвата плеером)
+    localStorage.setItem(`ep_${animeId}`, episode);
+    localStorage.setItem(`time_${animeId}`, Math.floor(time));
 
-    // 1. Локальное сохранение (всегда работает)
-    localStorage.setItem(`ep_${animeId}`, epStr);
-    localStorage.setItem(`time_${animeId}`, timeSec);
-    localStorage.setItem(`season_${animeId}`, season);
-
-    // 2. Облачное сохранение
-    const safeName = currentAnimeName || "Загрузка..."; 
-
-    console.log(`💾 [FIREBASE TRY] Сохраняю: ${safeName}, ${epStr} серия, ${timeSec} сек.`);
-
-    const userRef = doc(db, "users", currentUserUid);
-    try {
-        const userSnap = await getDoc(userRef);
-        let history = userSnap.exists() ? (userSnap.data().h || []) : [];
-        
-        history = history.filter(item => item.id !== animeId);
-        history.unshift({
-            id: animeId,
-            n: safeName,
-            v: currentVoice || "Оригинал",
-            e: epStr,
-            s: season,
-            t: Date.now(),
-            time: timeSec 
-        });
-
-        if (history.length > 50) history.pop();
-        await setDoc(userRef, { h: history }, { merge: true });
-        console.log("✅ [FIREBASE SUCCESS] Данные в облаке!");
-    } catch (e) {
-        console.error("❌ [FIREBASE ERROR] Ошибка записи:", e);
-    }
+    // 2. В облако (через history.js)
+    saveToHistoryCloud(currentUserUid, {
+        id: animeId,
+        n: currentAnimeName || "Аниме",
+        v: currentVoice || "Стандарт",
+        e: episode.toString(),
+        s: season,
+        time: Math.floor(time)
+    });
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ---
+// --- ИНИЦИАЛИЗАЦИЯ ---
 async function init() {
     if (!animeId) return;
     try {
@@ -74,6 +47,7 @@ async function init() {
         if (data.results && data.results.length > 0) {
             const shikiId = data.results[0].shikimori_id;
             if (shikiId) {
+                // Если есть ID Шикимори, ищем все озвучки этого тайтла
                 const allRes = await fetch(`https://kodikapi.com/search?token=${token}&shikimori_id=${shikiId}&with_material_data=true`);
                 const allData = await allRes.json();
                 updateUI(allData.results);
@@ -81,156 +55,107 @@ async function init() {
                 updateUI(data.results);
             }
         }
-    } catch (e) { console.error("❌ [INIT] Ошибка API:", e); }
+    } catch (e) { console.error("Ошибка API:", e); }
 }
 
 // --- ЗАПОЛНЕНИЕ ИНТЕРФЕЙСА ---
-async function updateUI(results) {
+function updateUI(results) {
     const a = results[0];
     const main = a.material_data || {};
     currentAnimeName = main.anime_title || a.title;
     
-    // Массовое заполнение полей
-    const fields = {
-        'title': currentAnimeName,
-        'meta': `${a.type} | ${main.shikimori_rating || 0} ★ | ${main.year || a.year}`,
-        'description': main.description || "Описания нет.",
-        'pass-duration': ` ${main.duration || '?'} мин.`,
-        'pass-year': main.year || a.year || 'Неизвестно',
-        'pass-genres': (main.anime_genres || main.genres || []).join(', '),
-        'pass-episodes': main.episodes_total === 1 ? 'Фильм' : `${a.last_episode || '?'} / ${main.episodes_total || '?'}`
-    };
+    // Основное
+    if(document.getElementById('title')) document.getElementById('title').innerText = currentAnimeName;
+    if(document.getElementById('description')) document.getElementById('description').innerText = main.description || "Описания нет.";
+    if(document.getElementById('meta')) document.getElementById('meta').innerText = `${a.type.toUpperCase()} • ${main.shikimori_rating || 0} ★ • ${main.year || a.year}`;
+    if(document.getElementById('poster')) document.getElementById('poster').src = main.poster_url || 'Assets/Cyanime.jpg';
 
-    for (let id in fields) {
-        const el = document.getElementById(id);
-        if (el) el.innerText = fields[id];
-    }
-
-    const poster = document.getElementById('poster');
-    if (poster && main.poster_url) poster.src = main.poster_url;
+    // ЗАПОЛНЕНИЕ ПАСПОРТА
+    const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
+    
+    setVal('pass-duration', `${main.duration || '?'} мин.`);
+    setVal('pass-episodes', `${a.last_episode || '?'} / ${main.episodes_total || '?'}`);
+    setVal('pass-year', main.year || a.year || '—');
+    setVal('pass-genres', (main.anime_genres || main.genres || []).slice(0, 3).join(', ') || '—');
+    setVal('pass-studio', (main.anime_studios || []).join(', ') || '—');
+    setVal('pass-director', (main.anime_directors || []).join(', ') || '—');
+    setVal('pass-author', '—'); // В Kodik API авторов манги обычно нет
 
     renderTranslations(results);
     renderFranchise(currentAnimeName);
-    
-    // Загружаем плеер с первым результатом
     loadPlayer(a.link);
 }
 
-// --- ПЛЕЕР: С ПАРАМЕТРАМИ ---
-async function loadPlayer(link) {
+// --- ПЛЕЕР ---
+function loadPlayer(link) {
     const iframe = document.getElementById('main-iframe');
     if (!iframe) return;
 
-    let savedEp = localStorage.getItem(`ep_${animeId}`);
-    let savedTime = localStorage.getItem(`time_${animeId}`);
-    let savedSeason = localStorage.getItem(`season_${animeId}`) || "1";
+    let savedEp = localStorage.getItem(`ep_${animeId}`) || "1";
+    let savedTime = localStorage.getItem(`time_${animeId}`) || "0";
 
-    // Тянем из облака, если нет локально
-    if (!savedEp && currentUserUid) {
-        try {
-            const userSnap = await getDoc(doc(db, "users", currentUserUid));
-            if (userSnap.exists()) {
-                const lastData = (userSnap.data().h || []).find(item => item.id === animeId);
-                if (lastData) {
-                    savedEp = lastData.e;
-                    savedTime = lastData.time;
-                    savedSeason = lastData.s || "1";
-                }
-            }
-        } catch(e) { console.error("Ошибка загрузки Cloud-сохранений:", e) }
-    }
-
-    // Подготовка ссылки
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const separator = finalLink.includes('?') ? '&' : '?';
     
-    const params = new URLSearchParams({
-        episode: savedEp || "1",
-        season: savedSeason,
-        start_from: savedTime || "0",
-        translations: "false", 
-        auto_translation: "false" 
-    });
+    iframe.src = `${finalLink}${separator}episode=${savedEp}&start_from=${savedTime}&translations=false`;
 
-    iframe.src = `${finalLink}${separator}${params.toString()}`;
-
-    // Запуск опроса плеера (раз в 10 сек)
+    // Интервал опроса плеера (раз в 10 сек)
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(() => {
         iframe.contentWindow.postMessage({ key: 'kodik_player_get_info' }, '*');
     }, 10000);
 }
 
-// --- ОЗВУЧКИ ---
+// --- КНОПКИ ОЗВУЧЕК ---
 function renderTranslations(results) {
     const container = document.getElementById('translation-list');
     if (!container) return;
     container.innerHTML = ''; 
-
     results.forEach((item, index) => {
         const btn = document.createElement('button');
-        btn.className = 'translation-btn';
+        btn.className = 'translation-btn' + (index === 0 ? ' active' : '');
         btn.innerText = item.translation.title; 
         btn.onclick = () => {
+            // Снимаем активный класс со всех и даем этой
             document.querySelectorAll('.translation-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentVoice = item.translation.title;
             loadPlayer(item.link);
         };
-        if (index === 0) { btn.classList.add('active'); currentVoice = item.translation.title; }
+        if (index === 0) currentVoice = item.translation.title;
         container.appendChild(btn);
     });
 }
 
-// --- ФРАНШИЗА ---
+// --- ХРОНОЛОГИЯ ---
 async function renderFranchise(title) {
     const container = document.getElementById('franchise-list');
     if (!container) return;
     try {
-        const res = await fetch(`https://kodikapi.com/search?token=${token}&title=${encodeURIComponent(title)}&types=anime-serial,anime&with_material_data=true`);
+        const res = await fetch(`https://kodikapi.com/search?token=${token}&title=${encodeURIComponent(title)}&types=anime-serial,anime`);
         const data = await res.json();
-        if (!data.results) return;
-        
-        container.innerHTML = '';
-        const seenShiki = new Set();
-        data.results
-            .sort((x, y) => (x.year || 0) - (y.year || 0))
-            .forEach(item => {
-                if (!seenShiki.has(item.shikimori_id)) {
-                    seenShiki.add(item.shikimori_id);
-                    const div = document.createElement('div');
-                    div.className = `franchise-item ${item.id === animeId ? 'active' : ''}`;
-                    div.innerText = `${item.title} (${item.year})`;
-                    div.onclick = () => { window.location.href = `watch.html?id=${item.id}`; };
-                    container.appendChild(div);
-                }
+        if (data.results) {
+            container.innerHTML = '';
+            data.results.slice(0, 5).forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'franchise-item' + (item.id == animeId ? ' active' : '');
+                div.innerText = `${item.title} (${item.year})`;
+                div.onclick = () => { if(item.id != animeId) location.href = `watch.html?id=${item.id}`; };
+                container.appendChild(div);
             });
-    } catch (e) { console.error("❌ [FRANCHISE] Ошибка:", e); }
+        }
+    } catch (e) {}
 }
 
-// --- ОБРАБОТКА ОТВЕТОВ ПЛЕЕРА ---
+// --- СЛУШАТЕЛЬ ПЛЕЕРА ---
 window.addEventListener('message', (e) => {
     let data = e.data;
-    if (typeof data === 'string') {
-        try { data = JSON.parse(data); } catch (err) { return; }
-    }
+    if (typeof data === 'string') { try { data = JSON.parse(data); } catch (err) { return; } }
 
-    if (data && data.key) {
-        console.log("🔍 Поймал ключ:", data.key); 
-    }
-
-    if (data.key === 'kodik_player_video_info' || data.method === 'setVideoInfo') {
-        const val = data.value || data.get_video_info;
-        if (!val) return;
-
-        const ep = val.episode;
-        const time = val.time || 0;
-        const season = val.season || "1";
-        
-        console.log(`🎯 [DATA MATCH] Серия: ${ep}, Время: ${time}`);
-        
-        if (ep) {
-            saveProgress(ep, time, season);
+    if (data.key === 'kodik_player_video_info') {
+        const val = data.value;
+        if (val && val.episode) {
+            triggerSave(val.episode, val.time, val.season);
         }
     }
 });
