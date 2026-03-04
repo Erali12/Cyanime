@@ -1,7 +1,6 @@
 // watch.js - Плеер и интерфейс просмотра CyAnime
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 import { auth } from "./firebase-config.js";
-// ❌ Импорт history.js убрали, так как используем глобальную window.saveToHistoryCloud
 
 const wParams = new URLSearchParams(window.location.search);
 const animeId = wParams.get('id'); 
@@ -11,43 +10,37 @@ let currentAnimeName = "";
 let currentVoice = "";
 let currentUserUid = null;
 let saveInterval = null;
+let currentEpisode = "1"; // По умолчанию 1 серия
 
-// Слушаем авторизацию
+// 1. Слушаем авторизацию
 onAuthStateChanged(auth, (user) => { 
     currentUserUid = user ? user.uid : null;
     console.log(user ? "✅ Юзер авторизован" : "⚠️ Гость");
     init(); 
 });
 
-// --- СОХРАНЕНИЕ ---
-function triggerSave(episode, time = 0, season = "1") {
+// 2. ФУНКЦИЯ СОХРАНЕНИЯ (Вызывается таймером или плеером)
+function triggerSave(episode) {
     const activeUid = currentUserUid || (auth.currentUser ? auth.currentUser.uid : null);
+    
+    if (!animeId || !activeUid) return; 
 
-    if (!animeId || !activeUid) {
-        console.warn("⏳ [WATCH] Ждем авторизацию для сохранения...");
-        return; 
-    }
-
-    // 1. Локально
+    // Локально (на всякий случай)
     localStorage.setItem(`ep_${animeId}`, episode);
-    localStorage.setItem(`time_${animeId}`, Math.floor(time));
 
-    // 2. В облако
+    // В облако
     if (typeof window.saveToHistoryCloud === "function") {
         window.saveToHistoryCloud(activeUid, {
             id: animeId,
             n: currentAnimeName || "Аниме",
             v: currentVoice || "Стандарт",
             e: episode.toString(),
-            s: season,
-            t: Math.floor(time) // ✅ Используем короткий 't' вместо 'time'
+            t: 0 // Kodik не всегда отдает время, поэтому фиксируем только серию
         });
-    } else {
-        console.error("❌ [WATCH] Функция сохранения не загрузилась!");
     }
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ ---
+// 3. ИНИЦИАЛИЗАЦИЯ ДАННЫХ
 async function init() {
     if (!animeId) return;
     try {
@@ -66,7 +59,7 @@ async function init() {
     } catch (e) { console.error("Ошибка API Kodik:", e); }
 }
 
-// --- ЗАПОЛНЕНИЕ ИНТЕРФЕЙСА ---
+// 4. ЗАПОЛНЕНИЕ ИНТЕРФЕЙСА (Твой прошлый полный список полей)
 function updateUI(results) {
     const a = results[0];
     const main = a.material_data || {};
@@ -74,11 +67,13 @@ function updateUI(results) {
     
     const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
     
+    // Основные данные
     setVal('title', currentAnimeName);
     setVal('description', main.description || "Описания нет.");
     setVal('meta', `${a.type.toUpperCase()} • ${main.shikimori_rating || 0} ★ • ${main.year || a.year}`);
     if(document.getElementById('poster')) document.getElementById('poster').src = main.poster_url || 'Assets/Cyanime.jpg';
 
+    // Дополнительные данные (Паспорт аниме)
     setVal('pass-duration', `${main.duration || '?'} мин.`);
     setVal('pass-episodes', `${a.last_episode || '?'} / ${main.episodes_total || '?'}`);
     setVal('pass-year', main.year || a.year || '—');
@@ -92,26 +87,33 @@ function updateUI(results) {
     loadPlayer(a.link);
 }
 
-// --- ПЛЕЕР ---
+// 5. ЗАГРУЗКА ПЛЕЕРА
 function loadPlayer(link) {
     const iframe = document.getElementById('main-iframe');
     if (!iframe) return;
 
-    let savedEp = localStorage.getItem(`ep_${animeId}`) || "1";
-    let savedTime = localStorage.getItem(`time_${animeId}`) || "0";
+    // Берем последнюю сохраненную серию
+    currentEpisode = localStorage.getItem(`ep_${animeId}`) || "1";
 
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const separator = finalLink.includes('?') ? '&' : '?';
     
-    iframe.src = `${finalLink}${separator}episode=${savedEp}&start_from=${savedTime}&translations=false`;
+    // Формируем ссылку с параметрами из твоей новой инструкции
+    iframe.src = `${finalLink}${separator}episode=${currentEpisode}&translations=false&api=true`;
 
+    // ЗАПУСКАЕМ ТАЙМЕР: Каждые 15 секунд принудительно сохраняем текущую серию
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(() => {
+        // Просим плеер дать инфу (на случай если он ответит)
         iframe.contentWindow.postMessage({ key: 'kodik_player_get_info' }, '*');
-    }, 10000);
+        
+        // Независимо от ответа плеера, сохраняем то, что знаем сами
+        console.log("⏱ Авто-сохранение серии:", currentEpisode);
+        triggerSave(currentEpisode);
+    }, 15000);
 }
 
-// --- КНОПКИ ОЗВУЧЕК ---
+// 6. КНОПКИ ОЗВУЧЕК
 function renderTranslations(results) {
     const container = document.getElementById('translation-list');
     if (!container) return;
@@ -131,7 +133,7 @@ function renderTranslations(results) {
     });
 }
 
-// --- ХРОНОЛОГИЯ ---
+// 7. ХРОНОЛОГИЯ
 async function renderFranchise(title) {
     const container = document.getElementById('franchise-list');
     if (!container) return;
@@ -151,7 +153,7 @@ async function renderFranchise(title) {
     } catch (e) {}
 }
 
-// --- СЛУШАТЕЛЬ ПЛЕЕРА ---
+// 8. СЛУШАТЕЛЬ ПЛЕЕРА
 window.addEventListener('message', (e) => {
     let data = e.data;
     if (typeof data === 'string') { 
@@ -159,16 +161,13 @@ window.addEventListener('message', (e) => {
         catch (err) { return; } 
     }
 
-    // 🕵️‍♂️ Слушаем ВСЁ, что говорит Kodik
-    if (data.key && data.key.includes('kodik')) {
-        console.log("🕵️‍♂️ [ПЛЕЕР ПИШЕТ]:", data.key, data.value);
-    }
-
-    // Пробуем ловить сразу два частых ключа
+    // Если плеер прислал инфу о смене серии — обновляем переменную
     if (data.key === 'kodik_player_video_info' || data.key === 'kodik_player_time_update') {
         const val = data.value;
         if (val && val.episode) {
-            triggerSave(val.episode, val.time, val.season);
+            currentEpisode = val.episode.toString();
+            // Сразу сохраняем при переключении
+            triggerSave(currentEpisode);
         }
     }
 });
