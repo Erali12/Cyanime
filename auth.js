@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
 import { 
     getAuth, 
     createUserWithEmailAndPassword, 
@@ -9,16 +9,17 @@ import {
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
-// Инициализируем здесь
-const app = initializeApp(firebaseConfig);
+// Исправленная инициализация (чтобы не было дублей)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 window.currentAuthType = 'login';
 
-// Переключение вкладок Вход/Регистрация
+// Делаем функцию доступной для HTML кнопок
 window.switchAuth = (type) => {
+    console.log("Переключение на:", type);
     const loginTab = document.getElementById('login-tab');
     const regTab = document.getElementById('reg-tab');
     const submitBtn = document.getElementById('auth-submit');
@@ -35,59 +36,45 @@ window.switchAuth = (type) => {
     }
 }
 
-// 1. Логика формы (Email + Pass)
-document.getElementById('auth-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('auth-email').value;
-    const pass = document.getElementById('auth-pass').value;
-    const type = window.currentAuthType;
-
-    try {
-        if (type === 'reg') {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-            // Создаем чистый профиль. Используем ключ 'h' для истории
-            await setDoc(doc(db, "users", userCredential.user.uid), {
-                h: [], 
-                p: { theme: 'dark' }
-            });
-            alert('Регистрация успешна!');
-        } else {
-            await signInWithEmailAndPassword(auth, email, pass);
-            alert('Вход выполнен!');
+// 1. Форма (Email + Pass)
+const authForm = document.getElementById('auth-form');
+if (authForm) {
+    authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('auth-email').value;
+        const pass = document.getElementById('auth-pass').value;
+        
+        try {
+            if (window.currentAuthType === 'reg') {
+                const res = await createUserWithEmailAndPassword(auth, email, pass);
+                await setDoc(doc(db, "users", res.user.uid), { h: [], p: { theme: 'dark' } });
+                alert('Аккаунт создан!');
+            } else {
+                await signInWithEmailAndPassword(auth, email, pass);
+            }
+            window.location.href = 'index.html';
+        } catch (error) {
+            alert('Ошибка: ' + error.message);
         }
-        window.location.href = 'index.html';
-    } catch (error) {
-        alert('Ошибка: ' + error.message);
-    }
-});
+    });
+}
 
-// 2. Логика Google (Защищенная)
+// 2. Google Auth
 const googleBtn = document.getElementById('google-auth');
 if (googleBtn) {
     googleBtn.addEventListener('click', async () => {
+        console.log("Кнопка Google нажата");
         try {
             const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            const userRef = doc(db, "users", user.uid);
-
-            // 🔥 ПРОВЕРКА: Чтобы не затереть 'h' при повторном входе
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
-                await setDoc(userRef, {
-                    h: [],
-                    p: { theme: 'dark' }
-                });
-            } else {
-                // Только обновляем настройки, историю не трогаем
-                await setDoc(userRef, {
-                    p: { theme: 'dark' }
-                }, { merge: true });
+            const userRef = doc(db, "users", result.user.uid);
+            const snap = await getDoc(userRef);
+            
+            if (!snap.exists()) {
+                await setDoc(userRef, { h: [], p: { theme: 'dark' } });
             }
-
-            alert(`Привет, ${user.displayName}!`);
             window.location.href = 'index.html';
         } catch (error) {
-            console.error("Ошибка Google Auth:", error);
+            console.error(error);
             alert('Ошибка Google: ' + error.message);
         }
     });
