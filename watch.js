@@ -217,21 +217,29 @@ async function renderFranchise(title) {
 
 // --- ОБРАБОТКА ОТВЕТОВ ПЛЕЕРА ---
 window.addEventListener('message', (e) => {
+    // 1. Пытаемся понять, что пришло
     let data = e.data;
-    
-    // Плеер иногда шлет данные строкой, нужно превратить их в объект
     if (typeof data === 'string') {
         try { data = JSON.parse(data); } catch (err) { return; }
     }
 
-    if (data.key === 'kodik_player_video_info') {
-        const val = data.value;
+    // ЛОГ ДЛЯ ТЕБЯ: выведет ключ любого сообщения от плеера
+    if (data && data.key) {
+        console.log("🔍 Поймал ключ:", data.key); 
+    }
+
+    // 2. Проверяем именно данные о просмотре
+    if (data.key === 'kodik_player_video_info' || data.method === 'setVideoInfo') {
+        const val = data.value || data.get_video_info;
+        if (!val) return;
+
         const ep = val.episode;
         const time = val.time || 0;
         const season = val.season || "1";
         
+        console.log(`🎯 [DATA MATCH] Серия: ${ep}, Время: ${time}`);
+        
         if (ep) {
-            console.log(`📥 [PLAYER DATA] Получено: серия ${ep}, время ${time}`);
             saveProgress(ep, time, season);
         }
     }
