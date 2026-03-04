@@ -32,39 +32,43 @@ onAuthStateChanged(auth, (user) => {
 
 // --- ЛОГИКА СОХРАНЕНИЯ (LocalStorage + Firebase) ---
 async function saveProgress(episode, time = 0, season = "1") {
-    if (!animeId) return;
+    if (!animeId || !currentUserUid) return;
 
     const epStr = episode.toString();
     const timeSec = Math.floor(time);
 
-    // 1. Локальное сохранение (мгновенно)
+    // 1. Локальное сохранение (всегда работает)
     localStorage.setItem(`ep_${animeId}`, epStr);
     localStorage.setItem(`time_${animeId}`, timeSec);
     localStorage.setItem(`season_${animeId}`, season);
 
     // 2. Облачное сохранение
-    if (!currentUserUid || !currentAnimeName) return;
+    // Если имя аниме еще не пришло из API, ставим "Загрузка..." вместо того, чтобы прерывать код
+    const safeName = currentAnimeName || "Загрузка..."; 
+
+    console.log(`💾 [FIREBASE TRY] Сохраняю: ${safeName}, ${epStr} серия, ${timeSec} сек.`);
 
     const userRef = doc(db, "users", currentUserUid);
     try {
         const userSnap = await getDoc(userRef);
         let history = userSnap.exists() ? (userSnap.data().h || []) : [];
         
-        history = history.filter(item => item.id !== animeId); // Убираем дубликат
+        history = history.filter(item => item.id !== animeId);
         history.unshift({
             id: animeId,
-            n: currentAnimeName,
+            n: safeName,
             v: currentVoice || "Оригинал",
             e: epStr,
-            s: season, // Добавили сезон
+            s: season,
             t: Date.now(),
             time: timeSec 
         });
 
         if (history.length > 50) history.pop();
         await setDoc(userRef, { h: history }, { merge: true });
+        console.log("✅ [FIREBASE SUCCESS] Данные в облаке!");
     } catch (e) {
-        console.error("❌ [CLOUD] Ошибка записи:", e);
+        console.error("❌ [FIREBASE ERROR] Ошибка записи:", e);
     }
 }
 
@@ -213,14 +217,21 @@ async function renderFranchise(title) {
 
 // --- ОБРАБОТКА ОТВЕТОВ ПЛЕЕРА ---
 window.addEventListener('message', (e) => {
-    // Ждем данные о видео
-    if (e.data.key === 'kodik_player_video_info') {
-        const val = e.data.value;
+    let data = e.data;
+    
+    // Плеер иногда шлет данные строкой, нужно превратить их в объект
+    if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (err) { return; }
+    }
+
+    if (data.key === 'kodik_player_video_info') {
+        const val = data.value;
         const ep = val.episode;
-        const time = val.time;
+        const time = val.time || 0;
         const season = val.season || "1";
         
         if (ep) {
+            console.log(`📥 [PLAYER DATA] Получено: серия ${ep}, время ${time}`);
             saveProgress(ep, time, season);
         }
     }
