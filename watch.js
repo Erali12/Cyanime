@@ -21,21 +21,32 @@ onAuthStateChanged(auth, (user) => {
 
 // --- СОХРАНЕНИЕ ---
 function triggerSave(episode, time = 0, season = "1") {
-    if (!animeId || !currentUserUid) return;
+    // Пытаемся взять UID напрямую из Auth, если переменная еще пуста
+    const activeUid = currentUserUid || (auth.currentUser ? auth.currentUser.uid : null);
 
-    // 1. Локально (для быстрого подхвата плеером)
+    if (!animeId || !activeUid) {
+        console.warn("⏳ [WATCH] Ждем авторизацию для сохранения...");
+        return; 
+    }
+
+    // 1. Локально
     localStorage.setItem(`ep_${animeId}`, episode);
     localStorage.setItem(`time_${animeId}`, Math.floor(time));
 
-    // 2. В облако (через history.js)
-    saveToHistoryCloud(currentUserUid, {
-        id: animeId,
-        n: currentAnimeName || "Аниме",
-        v: currentVoice || "Стандарт",
-        e: episode.toString(),
-        s: season,
-        time: Math.floor(time)
-    });
+    // 2. В облако
+    // Вызываем через window, чтобы точно не было проблем с импортом
+    if (window.saveToHistoryCloud) {
+        window.saveToHistoryCloud(activeUid, {
+            id: animeId,
+            n: currentAnimeName || "Аниме",
+            v: currentVoice || "Стандарт",
+            e: episode.toString(),
+            s: season,
+            time: Math.floor(time)
+        });
+    } else {
+        console.error("❌ [WATCH] history.js не загрузил функцию в window");
+    }
 }
 
 // --- ИНИЦИАЛИЗАЦИЯ ---
