@@ -154,9 +154,18 @@ async function renderFranchise(title) {
 // --- СЛУШАТЕЛЬ ПЛЕЕРА ---
 window.addEventListener('message', (e) => {
     let data = e.data;
-    if (typeof data === 'string') { try { data = JSON.parse(data); } catch (err) { return; } }
+    if (typeof data === 'string') { 
+        try { data = JSON.parse(data); } 
+        catch (err) { return; } 
+    }
 
-    if (data.key === 'kodik_player_video_info') {
+    // 🕵️‍♂️ Слушаем ВСЁ, что говорит Kodik
+    if (data.key && data.key.includes('kodik')) {
+        console.log("🕵️‍♂️ [ПЛЕЕР ПИШЕТ]:", data.key, data.value);
+    }
+
+    // Пробуем ловить сразу два частых ключа
+    if (data.key === 'kodik_player_video_info' || data.key === 'kodik_player_time_update') {
         const val = data.value;
         if (val && val.episode) {
             triggerSave(val.episode, val.time, val.season);
