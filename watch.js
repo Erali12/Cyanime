@@ -1,7 +1,7 @@
 // watch.js - Плеер и интерфейс просмотра CyAnime
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 import { auth } from "./firebase-config.js";
-import { saveToHistoryCloud } from "./history.js";
+// ❌ Импорт history.js убрали, так как используем глобальную window.saveToHistoryCloud
 
 const wParams = new URLSearchParams(window.location.search);
 const animeId = wParams.get('id'); 
@@ -21,7 +21,6 @@ onAuthStateChanged(auth, (user) => {
 
 // --- СОХРАНЕНИЕ ---
 function triggerSave(episode, time = 0, season = "1") {
-    // Пытаемся взять UID напрямую из Auth, если переменная еще пуста
     const activeUid = currentUserUid || (auth.currentUser ? auth.currentUser.uid : null);
 
     if (!animeId || !activeUid) {
@@ -34,18 +33,17 @@ function triggerSave(episode, time = 0, season = "1") {
     localStorage.setItem(`time_${animeId}`, Math.floor(time));
 
     // 2. В облако
-    // Вызываем через window, чтобы точно не было проблем с импортом
-    if (window.saveToHistoryCloud) {
+    if (typeof window.saveToHistoryCloud === "function") {
         window.saveToHistoryCloud(activeUid, {
             id: animeId,
             n: currentAnimeName || "Аниме",
             v: currentVoice || "Стандарт",
             e: episode.toString(),
             s: season,
-            time: Math.floor(time)
+            t: Math.floor(time) // ✅ Используем короткий 't' вместо 'time'
         });
     } else {
-        console.error("❌ [WATCH] history.js не загрузил функцию в window");
+        console.error("❌ [WATCH] Функция сохранения не загрузилась!");
     }
 }
 
@@ -58,7 +56,6 @@ async function init() {
         if (data.results && data.results.length > 0) {
             const shikiId = data.results[0].shikimori_id;
             if (shikiId) {
-                // Если есть ID Шикимори, ищем все озвучки этого тайтла
                 const allRes = await fetch(`https://kodikapi.com/search?token=${token}&shikimori_id=${shikiId}&with_material_data=true`);
                 const allData = await allRes.json();
                 updateUI(allData.results);
@@ -66,7 +63,7 @@ async function init() {
                 updateUI(data.results);
             }
         }
-    } catch (e) { console.error("Ошибка API:", e); }
+    } catch (e) { console.error("Ошибка API Kodik:", e); }
 }
 
 // --- ЗАПОЛНЕНИЕ ИНТЕРФЕЙСА ---
@@ -75,22 +72,20 @@ function updateUI(results) {
     const main = a.material_data || {};
     currentAnimeName = main.anime_title || a.title;
     
-    // Основное
-    if(document.getElementById('title')) document.getElementById('title').innerText = currentAnimeName;
-    if(document.getElementById('description')) document.getElementById('description').innerText = main.description || "Описания нет.";
-    if(document.getElementById('meta')) document.getElementById('meta').innerText = `${a.type.toUpperCase()} • ${main.shikimori_rating || 0} ★ • ${main.year || a.year}`;
-    if(document.getElementById('poster')) document.getElementById('poster').src = main.poster_url || 'Assets/Cyanime.jpg';
-
-    // ЗАПОЛНЕНИЕ ПАСПОРТА
     const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
     
+    setVal('title', currentAnimeName);
+    setVal('description', main.description || "Описания нет.");
+    setVal('meta', `${a.type.toUpperCase()} • ${main.shikimori_rating || 0} ★ • ${main.year || a.year}`);
+    if(document.getElementById('poster')) document.getElementById('poster').src = main.poster_url || 'Assets/Cyanime.jpg';
+
     setVal('pass-duration', `${main.duration || '?'} мин.`);
     setVal('pass-episodes', `${a.last_episode || '?'} / ${main.episodes_total || '?'}`);
     setVal('pass-year', main.year || a.year || '—');
     setVal('pass-genres', (main.anime_genres || main.genres || []).slice(0, 3).join(', ') || '—');
     setVal('pass-studio', (main.anime_studios || []).join(', ') || '—');
     setVal('pass-director', (main.anime_directors || []).join(', ') || '—');
-    setVal('pass-author', '—'); // В Kodik API авторов манги обычно нет
+    setVal('pass-author', '—'); 
 
     renderTranslations(results);
     renderFranchise(currentAnimeName);
@@ -110,7 +105,6 @@ function loadPlayer(link) {
     
     iframe.src = `${finalLink}${separator}episode=${savedEp}&start_from=${savedTime}&translations=false`;
 
-    // Интервал опроса плеера (раз в 10 сек)
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(() => {
         iframe.contentWindow.postMessage({ key: 'kodik_player_get_info' }, '*');
@@ -127,7 +121,6 @@ function renderTranslations(results) {
         btn.className = 'translation-btn' + (index === 0 ? ' active' : '');
         btn.innerText = item.translation.title; 
         btn.onclick = () => {
-            // Снимаем активный класс со всех и даем этой
             document.querySelectorAll('.translation-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentVoice = item.translation.title;
