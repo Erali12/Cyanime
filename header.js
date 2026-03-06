@@ -4,11 +4,11 @@
 
     const page = document.body.getAttribute('data-page');
 
+    // 1. Собираем HTML (сохраняем все твои условия по страницам)
     let headerHTML = `
         <div class="header-top-wrapper">
             <div class="header-content">
                 <div class="header-top">
-                    
                     <div class="header-left">
                         <a href="index.html" class="logo-section">
                             <img src="Assets/Cyanime.jpg" class="logo-img" alt="Logo">
@@ -27,7 +27,6 @@
                                     <img src="Assets/login.png" alt="Войти" class="login-icon">
                                 </button>
                             </div>
-                            
                             ${page !== 'auth' ? `
                             <button class="icon-btn">
                                 <img src="Assets/bell.png" class="header-icon" alt="Bell">
@@ -41,7 +40,6 @@
                             </button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -68,7 +66,7 @@
             <div class="header-content">
                 <div class="header-bottom">
                     <div class="search-box">
-                        <a href="index.html" class="btn-cyan back-btn">← Назад на главную</a>
+                        <a href="index.html" class="btn-cyan back-btn" style="text-decoration:none;">← Назад на главную</a>
                     </div>
                 </div>
             </div>
@@ -76,4 +74,29 @@
     }
 
     headerElement.innerHTML = headerHTML;
+
+    // 2. Логика темы (сразу после отрисовки)
+    const themeBtn = document.getElementById('theme-btn');
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+
+    function updateIcons(theme) {
+        if (!sunIcon || !moonIcon) return;
+        sunIcon.style.display = (theme === 'dark') ? 'none' : 'block';
+        moonIcon.style.display = (theme === 'dark') ? 'block' : 'none';
+    }
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateIcons(savedTheme);
+
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+        });
+    }
 })();
