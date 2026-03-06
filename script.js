@@ -2,9 +2,9 @@
 
 const KODIK_TOKEN = 'cc25b08a2d09435ad1818ce358fd407d';
 
-// Оборачиваем всё в событие загрузки, чтобы дождаться отрисовки header.js
+// Оборачиваем всё в событие загрузки, чтобы дождаться отрисовки DOM
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Находим элементы только ПОСЛЕ того, как страница (и хедер) готовы
+    // 1. Находим элементы
     const themeBtn = document.getElementById('theme-btn');
     const searchInput = document.getElementById('search-input');
     const grid = document.getElementById('anime-list');
@@ -24,14 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // При загрузке страницы устанавливаем сохраненную тему
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
     
-    // Вызываем с нулевой задержкой, чтобы иконки 100% успели появиться в DOM
+    // Небольшая задержка для корректного отображения иконок в хедере
     setTimeout(() => updateThemeIcons(savedTheme), 0);
 
-    // Вешаем слушатель клика, если кнопка темы существует на этой странице
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -55,13 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 4. ЗАГРУЗКА ДАННЫХ И ОТРИСОВКА КАРТОЧЕК ---
-    // Запускаем это ТОЛЬКО если на странице есть контейнер для аниме (grid)
+    // --- 4. ЗАГРУЗКА ДАННЫХ И ОТРИСОВКА КАРТОЧЕК (С СКЕЛЕТОНАМИ) ---
     if (grid) {
         async function fetchAnime() {
             const urlParams = new URLSearchParams(window.location.search);
             const searchQuery = urlParams.get('q');
             const currentTab = urlParams.get('tab') || 'ongoing'; 
+
+            // 🔥 ВСТАВЛЯЕМ СКЕЛЕТОНЫ ПЕРЕД ЗАПРОСОМ 🔥
+            grid.innerHTML = Array(12).fill('<div class="skeleton-card"></div>').join('');
 
             let url = `https://kodikapi.com/list?token=${KODIK_TOKEN}&types=anime-serial&with_material_data=true&limit=100`;
 
@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function renderCards(data) {
+            // Отрисовка заменяет содержимое grid (скелетоны исчезают автоматически)
             grid.innerHTML = data.map(anime => {
                 const material = anime.material_data || {};
                 const title = material.anime_title || anime.title; 

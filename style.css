@@ -356,3 +356,28 @@ iframe { width: 100%; height: 100%; border: none; }
 .dropdown-list li.divider { height: 1px; background: var(--border-color); margin: 5px 0; padding: 0; }
 .logout-btn { color: #ff4b4b !important; }
 .logout-btn:hover { background: rgba(255, 75, 75, 0.1) !important; }
+
+/* --- SKELETON LOADING (ПОД ТВОЙ РАЗМЕР) --- */
+.skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 25px; }
+
+.skeleton-card { 
+    background: var(--card-bg); 
+    aspect-ratio: 2/3; 
+    border-radius: 15px; 
+    position: relative; 
+    overflow: hidden; 
+    border: 1px solid var(--border-color);
+}
+
+.skeleton-card::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(128,128,128,0.05), transparent);
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes skeleton-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
