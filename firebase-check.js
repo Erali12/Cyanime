@@ -1,46 +1,57 @@
-// firebase-check.js
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 import { auth } from "./firebase-config.js";
 
-// Глобальная функция для кнопки входа (вызывается из HTML хедера)
-window.toggleAuth = function() {
-    window.location.href = 'auth.html';
+window.toggleAuth = () => window.location.href = 'auth.html';
+
+// Переключатель видимости меню
+window.toggleUserMenu = () => {
+    const menu = document.getElementById('user-dropdown');
+    if (menu) menu.classList.toggle('show');
 };
 
-// Глобальная функция для выхода
+// Закрытие меню при клике вне его области
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('user-dropdown');
+    const avatar = document.querySelector('.user-avatar');
+    if (menu && !menu.contains(e.target) && e.target !== avatar) {
+        menu.classList.remove('show');
+    }
+});
+
 window.logout = function() {
     if(confirm("Выйти из аккаунта?")) {
-        signOut(auth).then(() => {
-            location.reload();
-        }).catch((error) => {
-            console.error("Ошибка при выходе:", error);
-        });
+        signOut(auth).then(() => location.reload());
     }
 };
 
-// Проверка состояния
 onAuthStateChanged(auth, (user) => {
     const authBlock = document.getElementById('auth-block');
-    
-    // Если скрипт сработал быстрее, чем создался хедер (хотя теперь это маловероятно)
     if (!authBlock) return; 
 
     if (user) {
-        // Юзер авторизован - рисуем аватар
         const photoURL = user.photoURL || "Assets/user-avatar.png";
         
         authBlock.innerHTML = `
-            <img src="${photoURL}" class="user-avatar" 
-                 onclick="logout()" 
-                 title="Выйти: ${user.email}" 
-                 onerror="this.src='https://ui-avatars.com/api/?name=${user.email}&background=00e5ff&color=fff'"
-                 style="cursor:pointer; width:36px; height:36px; border-radius:50%; border: 2px solid #00e5ff;">
+            <div class="profile-wrapper">
+                <img src="${photoURL}" class="user-avatar" onclick="toggleUserMenu()" 
+                     onerror="this.src='https://ui-avatars.com/api/?name=${user.email}&background=00e5ff&color=fff'">
+                
+                <div id="user-dropdown" class="dropdown-menu">
+                    <div class="dropdown-header">Настройки профиля</div>
+                    <ul class="dropdown-list">
+                        <li><a href="settings.html">⚙️ Настройки</a></li>
+                        <li><a href="favorites.html">⭐ Избранные</a></li>
+                        <li class="disabled">👥 Друзья (soon)</li>
+                        <li class="divider"></li>
+                        <li onclick="logout()" class="logout-btn">🚪 Выйти</li>
+                    </ul>
+                </div>
+            </div>
         `;
     } else {
-        // Гость - рисуем кнопку входа в точности как было у тебя
         authBlock.innerHTML = `
-            <button class="auth-btn login-btn" onclick="toggleAuth()" title="Войти">
-                <img src="Assets/login.png" alt="Войти" class="login-icon" onerror="this.style.display='none'; this.parentElement.innerText='Вход';">
+            <button class="auth-btn login-btn" onclick="toggleAuth()">
+                <img src="Assets/login.png" alt="Войти" class="login-icon">
             </button>
         `;
     }

@@ -1,9 +1,7 @@
-// header.js - Полная и точная копия твоего старого хедера
 (function() {
     const headerElement = document.getElementById('main-header');
     if (!headerElement) return;
 
-    // Узнаем текущую страницу (например, 'ongoing', 'history', 'auth', 'player')
     const page = document.body.getAttribute('data-page');
 
     let headerHTML = `
@@ -24,11 +22,11 @@
 
                     <div class="header-right">
                         <div class="user-section">
-                            <div id="auth-block">
-                                <button class="auth-btn login-btn" onclick="toggleAuth()" title="Войти">
-                                <img src="Assets/login.png" alt="Войти" class="login-icon" onerror="this.parentElement.innerText='Вход'">
-                            </button>
-                        </div>
+                            <div id="auth-block" class="auth-container">
+                                <button class="auth-btn login-btn" onclick="toggleAuth()">
+                                    <img src="Assets/login.png" alt="Войти" class="login-icon">
+                                </button>
+                            </div>
                             
                             ${page !== 'auth' ? `
                             <button class="icon-btn">
@@ -41,10 +39,6 @@
                                 <img src="Assets/sun.png" class="sun-icon header-icon" alt="Sun">
                                 <img src="Assets/Moon.png" class="moon-icon header-icon" alt="Moon" style="display:none;">
                             </button>
-                            ${page !== 'auth' ? `
-                            <button class="icon-btn">
-                                <img src="Assets/settings.png" class="header-icon" alt="Settings">
-                            </button>` : ''}
                         </div>
                     </div>
 
@@ -53,7 +47,6 @@
         </div>
     `;
 
-    // Нижняя часть (Поиск и табы) нужна не везде (на странице просмотра и авторизации ее нет)
     if (page !== 'player' && page !== 'auth') {
         headerHTML += `
         <div class="header-bottom-wrapper">
@@ -70,7 +63,6 @@
             </div>
         </div>`;
     } else if (page === 'auth') {
-        // На странице авторизации кнопка "назад"
         headerHTML += `
         <div class="header-bottom-wrapper">
             <div class="header-content">
@@ -83,6 +75,5 @@
         </div>`;
     }
 
-    // Вставляем HTML в страницу
     headerElement.innerHTML = headerHTML;
 })();

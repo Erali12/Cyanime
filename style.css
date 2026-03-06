@@ -6,6 +6,12 @@
     --accent-color: #008b8b;
     --card-bg: #ffffff;
     --glow: 0 0 10px rgba(0, 139, 139, 0.3);
+    
+    /* Добавлено для работы истории и авторизации */
+    --cyan-main: var(--accent-color);
+    --cyan-glow: var(--glow);
+    --border-color: rgba(128, 128, 128, 0.2);
+    --bg-input: #ffffff;
 }
 
 [data-theme="dark"] {
@@ -15,6 +21,9 @@
     --accent-color: #00ffff;
     --card-bg: #1e1e1e;
     --glow: 0 0 15px rgba(0, 255, 255, 0.5);
+    
+    --border-color: rgba(255, 255, 255, 0.1);
+    --bg-input: #2a2a2a;
 }
 
 * {
@@ -65,18 +74,18 @@ html, body {
     gap: 15px;
 }
 
-/* Островки кнопок (Визуальное объединение) */
+/* Островки кнопок */
 .user-section, .settings-section {
     display: flex;
     align-items: center;
-    gap: 5px; /* Минимальное расстояние между кнопками внутри блока */
+    gap: 5px;
     background: rgba(128, 128, 128, 0.05);
     padding: 4px;
     border-radius: 12px;
     border: 1px solid rgba(128, 128, 128, 0.1);
 }
 
-/* Логотип (БЕЗ инверсии, как просил) */
+/* Логотип */
 .logo-section { display: flex; align-items: center; gap: 12px; text-decoration: none; flex-shrink: 0; }
 .logo-img { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--accent-color); object-fit: cover; }
 .logo-text { font-size: 1.6rem; font-weight: 800; color: var(--text-color); }
@@ -100,15 +109,15 @@ html, body {
     overflow: hidden;
 }
 
-.theme-toggle { border-radius: 50% !important; } /* Кнопка темы — круглая */
+.theme-toggle { border-radius: 50% !important; }
 
-/* АНИМАЦИЯ ПРИ НАВЕДЕНИИ (как у фильтров) */
+/* АНИМАЦИЯ ПРИ НАВЕДЕНИИ */
 .icon-btn:hover, .theme-toggle:hover, .auth-btn:hover, .btn-cyan:hover, .eye-btn:hover, .login-btn:hover {
-    background: var(--accent-color); /* Заливка цветом */
+    background: var(--accent-color);
     border-color: var(--accent-color);
-    color: #fff; /* Цвет иконки/текста */
-    box-shadow: var(--glow); /* Свечение */
-    transform: translateY(-2px); /* Подъем */
+    color: #fff;
+    box-shadow: var(--glow);
+    transform: translateY(-2px);
 }
 
 /* Иконки внутри кнопок */
@@ -120,32 +129,26 @@ html, body {
     filter: invert(0);
 }
 
-/* ЗУМ 2х для Войти и Смотрю */
-.eye-icon, .login-icon {
-    width: 48px !important; /* Увеличение в 2 раза */
-    height: 48px !important;
-}
-/* --- ЛОГИКА ИНВЕРСИИ ИКОНОК --- */
-/* 1. По умолчанию в темной теме все иконки белые */
+.eye-icon, .login-icon { width: 48px !important; height: 48px !important; }
+
+/* --- ЛОГИКА ИНВЕРСИИ ИКОНОК (ВОССТАНОВЛЕНО) --- */
 [data-theme="dark"] .header-icon, 
 [data-theme="dark"] .eye-icon, 
 [data-theme="dark"] .login-icon {
     filter: invert(1);
 }
 
-/* 🔥 ИСКЛЮЧЕНИЕ ДЛЯ ЛУНЫ (КНОПКИ ТЕМЫ) 🔥 
-   Убираем инверсию, чтобы луна оставалась своего родного цвета */
+/* 🔥 ИСКЛЮЧЕНИЕ ДЛЯ ЛУНЫ (КНОПКИ ТЕМЫ) 🔥 */
 [data-theme="dark"] .theme-toggle .header-icon {
     filter: invert(0) !important;
 }
 
-/* 2. ПРИ НАВЕДЕНИИ:
-   Войти/Смотрю должны стать темными, чтобы их было видно на неоновом фоне.
-   Остальные (настройки) остаются белыми (на акцентном цвете). */
+/* ПРИ НАВЕДЕНИИ */
 .eye-btn:hover .eye-icon,
 .login-btn:hover .login-icon {
-    filter: invert(0) !important; /* В темной теме возвращаем цвет иконки */
+    filter: invert(0) !important;
 }
+
 /* --- 5. ПОИСК И НАВИГАЦИЯ --- */
 .search-box { flex: 0 1 350px; }
 .search-box input { 
@@ -168,6 +171,8 @@ html, body {
 .container { padding-top: 35px; }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
 .section-title { border-left: 5px solid var(--accent-color); padding-left: 15px; font-size: 1.8rem; margin: 0; }
+
+/* ВОССТАНОВЛЕНА КНОПКА ФИЛЬТРОВ */
 .btn-filter-main { background: transparent; border: 1px solid var(--accent-color); color: var(--text-color); padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
 .btn-filter-main:hover { background: var(--accent-color); color: #fff; box-shadow: var(--glow); transform: translateY(-2px); }
 
@@ -201,208 +206,51 @@ iframe { width: 100%; height: 100%; border: none; }
     .search-box { flex: 0 1 250px; }
 }
 @media (max-width: 768px) {
-    /* Компактный хедер без налезания */
-    .header-top { gap: 6px; padding: 8px 0; flex-wrap: wrap; } /* Разрешаем перенос, если не влезает */
+    .header-top { gap: 6px; padding: 8px 0; flex-wrap: wrap; }
     .header-left, .header-right { gap: 6px; }
     .user-section, .settings-section { gap: 3px; padding: 3px; }
 
-    /* Кнопки на мобилках чуть меньше (38px), чтобы всё влезло */
     .icon-btn, .theme-toggle, .auth-btn, .btn-cyan, .eye-btn, .login-btn {
         width: 38px !important;
         height: 38px !important;
     }
     .header-icon { width: 20px !important; height: 20px !important; }
-    .eye-icon, .login-icon { width: 36px !important; height: 36px !important; } /* Зум меньше на мобилках */
+    .eye-icon, .login-icon { width: 36px !important; height: 36px !important; }
 
     .logo-text { font-size: 1.2rem; }
     .logo-img { width: 34px; height: 34px; }
 
-    /* 🔥 ФИКС ПОРЯДКА ДЛЯ МОБИЛОК 🔥 */
-    .search-box { 
-        order: 2; /* Поиск будет вторым */
-        flex: 1 1 100%; 
-        margin: 10px 0; 
-    }
-    
-    .nav-tabs { 
-        order: 1; /* Навигация будет первой (или наоборот, поменяй цифры) */
-        gap: 15px; 
-        overflow-x: auto; 
-        white-space: nowrap; 
-        padding-bottom: 8px; 
-        width: 100%;
-    }
+    .search-box { order: 2; flex: 1 1 100%; margin: 10px 0; }
+    .nav-tabs { order: 1; gap: 15px; overflow-x: auto; white-space: nowrap; padding-bottom: 8px; width: 100%; }
 
     .anime-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
     
-    /* Плеер на весь экран без люфта */
     .main-grid { grid-template-columns: 1fr; }
     .poster-side { display: none; }
     .player-container { border-radius: 0; margin-left: -15px; width: calc(100% + 30px); }
 }
-/* Совсем мелкие экраны */
 @media (max-width: 380px) {
-    .logo-text { display: none; } /* Оставляем только иконку логотипа */
+    .logo-text { display: none; }
 }
 
-
-
-/* Стили для страницы авторизации */
-.auth-page { display: flex; flex-direction: column; min-height: 100vh; }
-.auth-container { 
-    background: var(--bg-card); 
-    max-width: 400px; 
-    margin: 50px auto; 
-    padding: 30px; 
-    border-radius: 15px; 
-    border: 1px solid var(--border-color); 
-    text-align: center;
-}
-.auth-tabs { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; }
-.auth-tabs button { 
-    background: none; border: none; color: var(--text-muted); 
-    cursor: pointer; font-size: 1.2rem; padding-bottom: 5px; 
-    transition: 0.3s;
-}
-.auth-tabs button.active { 
-    color: var(--accent-color); 
-    border-bottom: 2px solid var(--accent-color); 
-}
-#auth-form input { 
-    width: 100%; padding: 15px; margin-bottom: 20px; 
-    background: var(--bg-input); border: 1px solid var(--border-color); 
-    color: var(--text-color); border-radius: 8px; box-sizing: border-box; 
-}
-.auth-submit-btn { width: 100%; padding: 15px; font-size: 1rem; }
-.back-btn { padding: 8px 15px; text-decoration: none; }
-
-
-/* Стили для страницы авторизации */
-.auth-page-main {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 70vh;
-}
-
-.auth-card {
-    background: var(--bg-secondary, #1a1a1a); /* Используем твои переменные если есть */
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    width: 100%;
-    max-width: 400px;
-}
-
-.auth-tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 25px;
-    border-bottom: 2px solid #333;
-}
-
-.auth-tab {
-    flex: 1;
-    padding: 10px;
-    background: none;
-    border: none;
-    color: #888;
-    cursor: pointer;
-    font-size: 16px;
-    transition: 0.3s;
-}
-
-.auth-tab.active {
-    color: #00f2ff; /* Твой фирменный цвет Cy */
-    border-bottom: 2px solid #00f2ff;
-}
-
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.auth-form input {
-    width: 100%;
-    padding: 12px;
-    background: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 8px;
-    color: white;
-}
-
-.auth-submit-btn {
-    padding: 12px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.auth-divider {
-    text-align: center;
-    margin: 10px 0;
-    position: relative;
-}
-
-.auth-divider::before {
-    content: "";
-    position: absolute;
-    left: 0; top: 50%;
-    width: 100%; height: 1px;
-    background: #444;
-}
-
-.auth-divider span {
-    position: relative;
-    background: #1a1a1a;
-    padding: 0 10px;
-    color: #888;
-    font-size: 14px;
-}
-
-.btn-google {
-    background: white;
-    color: #444;
-    border: none;
-    padding: 10px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: 0.3s;
-}
-
-.btn-google:hover {
-    background: #f1f1f1;
-}
-
-.btn-google img {
-    width: 20px;
-}
-
-
+/* --- 9. ИСТОРИЯ ПРОСМОТРОВ --- */
 .cyan-text {
     color: var(--cyan-main);
-    /* Добавляем легкое свечение, которое меняется с темой */
     text-shadow: 0 0 8px var(--cyan-glow);
     font-weight: bold;
 }
 
 .history-item {
-    background: var(--bg-card);
+    background: var(--card-bg);
     padding: 15px 20px;
     border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /* Адаптивная полоска слева */
     border-left: 4px solid var(--cyan-main);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 15px;
 }
 
 .history-item:hover {
@@ -412,7 +260,7 @@ iframe { width: 100%; height: 100%; border: none; }
 
 .btn-cyan-small {
     background: var(--cyan-main);
-    color: #000; /* На циановом фоне черный текст всегда читается лучше */
+    color: #000;
     border: none;
     padding: 8px 18px;
     border-radius: 6px;
@@ -421,36 +269,97 @@ iframe { width: 100%; height: 100%; border: none; }
     transition: 0.3s;
 }
 
-/* Кнопка Google на весь экран */
-.btn-google {
+/* --- 10. СТРАНИЦА АВТОРИЗАЦИИ --- */
+.auth-page-main {
     display: flex;
-    align-items: center;
     justify-content: center;
-    width: 100%; /* Растягиваем */
-    padding: 12px;
-    background: #fff;
-    color: #444;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-    margin-top: 15px;
-    box-sizing: border-box; /* Чтобы padding не раздувал ширину */
+    align-items: center;
+    min-height: 70vh;
 }
 
-.btn-google:hover {
-    background: #f1f1f1;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+.auth-card {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 400px;
 }
 
-.btn-google img {
-    width: 20px;
-    margin-right: 10px;
+.auth-tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); }
+.auth-tab { flex: 1; padding: 10px; background: none; border: none; color: #888; cursor: pointer; font-size: 16px; transition: 0.3s; }
+.auth-tab.active { color: var(--accent-color); border-bottom: 2px solid var(--accent-color); }
+
+.auth-form { display: flex; flex-direction: column; gap: 15px; }
+.auth-form input { 
+    width: 100%; padding: 12px; background: var(--bg-input); 
+    border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); 
 }
 
 .auth-submit-btn {
-    width: 100%; /* Обычную кнопку тоже растянем для симметрии */
-    margin-top: 10px;
+    padding: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+    background: var(--accent-color); color: #000; border: none; border-radius: 8px; cursor: pointer; width: 100%;
 }
+
+.auth-divider { text-align: center; margin: 15px 0; position: relative; }
+.auth-divider::before { content: ""; position: absolute; left: 0; top: 50%; width: 100%; height: 1px; background: var(--border-color); }
+.auth-divider span { position: relative; background: var(--card-bg); padding: 0 10px; color: #888; font-size: 14px; }
+
+/* Кнопка Google на весь экран */
+.btn-google {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; padding: 12px; background: #fff; color: #444;
+    border: 1px solid #ccc; border-radius: 8px; font-size: 1rem;
+    font-weight: 600; cursor: pointer; transition: 0.3s; box-sizing: border-box;
+}
+
+.btn-google:hover { background: #f1f1f1; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+.btn-google img { width: 20px; margin-right: 10px; }
+
+/* --- 11. ПРОФИЛЬ И ВЫПАДАЮЩЕЕ МЕНЮ --- */
+.profile-wrapper { position: relative; display: inline-block; }
+.user-avatar { cursor: pointer; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent-color); transition: transform 0.2s; }
+.user-avatar:hover { transform: scale(1.05); }
+
+.dropdown-menu {
+    position: absolute;
+    top: 55px;
+    right: 0;
+    width: 200px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-20px);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.dropdown-menu.show { opacity: 1; visibility: visible; transform: translateY(0); }
+
+.dropdown-header {
+    padding: 12px 15px; font-size: 0.8rem; color: var(--accent-color);
+    text-transform: uppercase; font-weight: bold; border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-list { list-style: none; padding: 5px 0; margin: 0; }
+
+/* 🔥 ФИКС ЦВЕТА ТЕКСТА В МЕНЮ 🔥 */
+.dropdown-list li, .dropdown-list li a {
+    padding: 10px 15px;
+    color: var(--text-color); /* Теперь текст черный в светлой теме и белый в темной */
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: block;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dropdown-list li:hover:not(.disabled) { background: rgba(0, 139, 139, 0.1); }
+.dropdown-list li.disabled { color: #666; cursor: default; }
+.dropdown-list li.divider { height: 1px; background: var(--border-color); margin: 5px 0; padding: 0; }
+.logout-btn { color: #ff4b4b !important; }
+.logout-btn:hover { background: rgba(255, 75, 75, 0.1) !important; }
