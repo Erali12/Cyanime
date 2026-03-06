@@ -1,7 +1,7 @@
 // firebase-config.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { initializeFirestore, persistentLocalCache, _enableProperties } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyArmd5exJXyzQUjmCorgYJ4Dp8ABoDL5H4",
@@ -13,14 +13,10 @@ const firebaseConfig = {
     measurementId: "G-826HJ3706B"
 };
 
-// Инициализация
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// Настройка базы с усиленным соединением и кэшем
 const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true, // Обход блокировок
-    localCache: persistentLocalCache()  // Чтобы данные не пропадали при обновлении
+    localCache: persistentLocalCache()
 });
 
-export { app, auth, db, firebaseConfig }; // Добавил экспорт конфига на всякий случай
+export { auth, db };
