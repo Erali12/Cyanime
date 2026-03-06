@@ -39,11 +39,11 @@ onAuthStateChanged(auth, (user) => {
                 <div id="user-dropdown" class="dropdown-menu">
                     <div class="dropdown-header">Настройки профиля</div>
                     <ul class="dropdown-list">
-                        <li><a href="settings.html">⚙️ Настройки</a></li>
-                        <li><a href="favorites.html">⭐ Избранные</a></li>
-                        <li class="disabled">👥 Друзья (soon)</li>
+                        <li><a href="settings.html">Настройки</a></li>
+                        <li><a href="favorites.html">Избранные</a></li>
+                        <li class="disabled">Друзья (soon)</li>
                         <li class="divider"></li>
-                        <li onclick="logout()" class="logout-btn">🚪 Выйти</li>
+                        <li onclick="logout()" class="logout-btn">Выйти</li>
                     </ul>
                 </div>
             </div>

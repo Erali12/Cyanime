@@ -317,35 +317,25 @@ iframe { width: 100%; height: 100%; border: none; }
 .btn-google:hover { background: #f1f1f1; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
 .btn-google img { width: 20px; margin-right: 10px; }
 
-/* --- 11. ПРОФИЛЬ И ВЫПАДАЮЩЕЕ МЕНЮ --- */
+/* --- 11. ПРОФИЛЬ И ВЫПАДАЮЩЕЕ МЕНЮ (ОПТИМИЗИРОВАНО) --- */
 .profile-wrapper { position: relative; display: inline-block; }
 .user-avatar { cursor: pointer; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent-color); transition: transform 0.2s; }
 .user-avatar:hover { transform: scale(1.05); }
 
-.dropdown-menu {
-    position: absolute;
-    top: 55px;
-    right: 0;
-    width: 200px;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    z-index: 9999;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-20px);
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-}
-
+.dropdown-menu { position: absolute; top: 55px; right: 0; width: 200px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); z-index: 9999; opacity: 0; visibility: hidden; transform: translateY(-20px); transition: all 0.3s cubic-bezier(0.68,-0.55,0.27,1.55); }
 .dropdown-menu.show { opacity: 1; visibility: visible; transform: translateY(0); }
 
-.dropdown-header {
-    padding: 12px 15px; font-size: 0.8rem; color: var(--accent-color);
-    text-transform: uppercase; font-weight: bold; border-bottom: 1px solid var(--border-color);
-}
-
+.dropdown-header { padding: 12px 15px; font-size: 0.8rem; color: var(--accent-color); text-transform: uppercase; font-weight: bold; border-bottom: 1px solid var(--border-color); letter-spacing: 0.5px; }
 .dropdown-list { list-style: none; padding: 5px 0; margin: 0; }
+
+/* Твои компактные настройки высоты строк */
+.dropdown-list li, .dropdown-list li a { padding: 6px 15px; color: var(--text-color); text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
+.dropdown-list li:hover:not(.disabled) { background: rgba(0, 255, 255, 0.1); }
+.dropdown-list li.divider { height: 1px; background: var(--border-color); margin: 5px 0; padding: 0; }
+
+.logout-btn { color: #ff4b4b !important; font-weight: 600; }
+.logout-btn:hover { background: rgba(255, 75, 75, 0.1) !important; }
+.dropdown-list li.disabled { color: #666; cursor: default; opacity: 0.6; }
 
 /* 🔥 ФИКС ЦВЕТА ТЕКСТА В МЕНЮ 🔥 */
 .dropdown-list li, .dropdown-list li a {
