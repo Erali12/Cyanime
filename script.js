@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentTab = urlParams.get('tab') || 'ongoing'; 
 
             // 🔥 ВСТАВЛЯЕМ СКЕЛЕТОНЫ ПЕРЕД ЗАПРОСОМ 🔥
-            grid.innerHTML = Array(12).fill('<div class="skeleton-card"></div>').join('');
+            grid.innerHTML = Array(14).fill('<div class="skeleton-card"></div>').join('');
 
             let url = `https://kodikapi.com/list?token=${KODIK_TOKEN}&types=anime-serial&with_material_data=true&limit=100`;
 
