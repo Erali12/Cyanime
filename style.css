@@ -328,7 +328,6 @@ iframe { width: 100%; height: 100%; border: none; }
 .dropdown-header { padding: 12px 15px; font-size: 0.8rem; color: var(--accent-color); text-transform: uppercase; font-weight: bold; border-bottom: 1px solid var(--border-color); letter-spacing: 0.5px; }
 .dropdown-list { list-style: none; padding: 5px 0; margin: 0; }
 
-/* Твои компактные настройки высоты строк */
 .dropdown-list li, .dropdown-list li a { padding: 6px 15px; color: var(--text-color); text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
 .dropdown-list li:hover:not(.disabled) { background: rgba(0, 255, 255, 0.1); }
 .dropdown-list li.divider { height: 1px; background: var(--border-color); margin: 5px 0; padding: 0; }
@@ -336,6 +335,10 @@ iframe { width: 100%; height: 100%; border: none; }
 .logout-btn { color: #ff4b4b !important; font-weight: 600; }
 .logout-btn:hover { background: rgba(255, 75, 75, 0.1) !important; }
 .dropdown-list li.disabled { color: #666; cursor: default; opacity: 0.6; }
+
+/* Стили для новых иконок меню */
+.menu-icon { width: 18px; height: 18px; object-fit: contain; transition: 0.3s; }
+[data-theme="dark"] .menu-icon { filter: invert(1); }
 
 /* 🔥 ФИКС ЦВЕТА ТЕКСТА В МЕНЮ 🔥 */
 .dropdown-list li, .dropdown-list li a {

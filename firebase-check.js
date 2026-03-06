@@ -13,14 +13,17 @@ window.toggleUserMenu = () => {
 document.addEventListener('click', (e) => {
     const menu = document.getElementById('user-dropdown');
     const avatar = document.querySelector('.user-avatar');
-    if (menu && !menu.contains(e.target) && e.target !== avatar) {
+    if (menu && !menu.contains(e.target) && !e.target.classList.contains('user-avatar')) {
         menu.classList.remove('show');
     }
 });
 
 window.logout = function() {
     if(confirm("Выйти из аккаунта?")) {
-        signOut(auth).then(() => location.reload());
+        signOut(auth).then(() => {
+            localStorage.removeItem('user_favs'); // Очистка локальных данных при выходе
+            location.reload();
+        });
     }
 };
 
@@ -34,16 +37,32 @@ onAuthStateChanged(auth, (user) => {
         authBlock.innerHTML = `
             <div class="profile-wrapper">
                 <img src="${photoURL}" class="user-avatar" onclick="toggleUserMenu()" 
-                     onerror="this.src='https://ui-avatars.com/api/?name=${user.email}&background=00e5ff&color=fff'">
+                     onerror="this.src='https://ui-avatars.com/api/?name=${user.email || 'User'}&background=00e5ff&color=fff'">
                 
                 <div id="user-dropdown" class="dropdown-menu">
                     <div class="dropdown-header">Настройки профиля</div>
                     <ul class="dropdown-list">
-                        <li><a href="settings.html">Настройки</a></li>
-                        <li><a href="favorites.html">Избранные</a></li>
-                        <li class="disabled">Друзья (soon)</li>
+                        <li>
+                            <a href="settings.html">
+                                <img src="Assets/settings.png" class="menu-icon" alt="Settings"> 
+                                Настройки
+                            </a>
+                        </li>
+                        <li>
+                            <a href="favorites.html">
+                                <img src="Assets/favourite.png" class="menu-icon" alt="Fav"> 
+                                Избранные
+                            </a>
+                        </li>
+                        <li class="disabled">
+                            <span style="opacity: 0.5; display: flex; align-items: center; gap: 12px;">
+                                👥 Друзья (soon)
+                            </span>
+                        </li>
                         <li class="divider"></li>
-                        <li onclick="logout()" class="logout-btn">Выйти</li>
+                        <li onclick="logout()" class="logout-btn">
+                             🚪 Выйти
+                        </li>
                     </ul>
                 </div>
             </div>
