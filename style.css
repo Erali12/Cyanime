@@ -420,3 +420,37 @@ iframe { width: 100%; height: 100%; border: none; }
     font-weight: 700;
     transition: 0.3s;
 }
+
+/* Кнопка Google на весь экран */
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%; /* Растягиваем */
+    padding: 12px;
+    background: #fff;
+    color: #444;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 15px;
+    box-sizing: border-box; /* Чтобы padding не раздувал ширину */
+}
+
+.btn-google:hover {
+    background: #f1f1f1;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-google img {
+    width: 20px;
+    margin-right: 10px;
+}
+
+.auth-submit-btn {
+    width: 100%; /* Обычную кнопку тоже растянем для симметрии */
+    margin-top: 10px;
+}
