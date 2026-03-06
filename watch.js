@@ -5,7 +5,7 @@ import { auth } from "./firebase-config.js";
 const KODIK_TOKEN = 'cc25b08a2d09435ad1818ce358fd407d';
 const wParams = new URLSearchParams(window.location.search);
 const animeId = wParams.get('id'); 
-const targetVoice = wParams.get('voice'); // Подхватываем озвучку из URL
+const targetVoice = wParams.get('voice'); 
 
 /* --- 2. СОСТОЯНИЕ --- */
 let currentAnimeName = "";
@@ -27,7 +27,6 @@ onAuthStateChanged(auth, (user) => {
 /* --- 4. ОСНОВНАЯ ЛОГИКА ЗАГРУЗКИ --- */
 async function init() {
     try {
-        // Сначала получаем данные по ID, чтобы узнать Shikimori ID
         let res = await fetch(`https://kodikapi.com/search?token=${KODIK_TOKEN}&id=${animeId}&with_material_data=true`);
         let data = await res.json();
         
@@ -35,22 +34,23 @@ async function init() {
             const base = data.results[0];
             const shikiId = base.shikimori_id;
 
+            // УМНОЕ ОПРЕДЕЛЕНИЕ БАЗОВОГО ИМЕНИ (Для сложных названий типа "Свинья")
             let rawTitle = (base.material_data?.anime_title || base.title).split('/')[0].split(':')[0].trim();
-            const cleanTitleForSearch = rawTitle.replace(/\s+\d+$|\s+[IVXLCDM]+$|\s+сезон.*$/i, '').trim();
+            let words = rawTitle.split(' ');
+            // Берем первые 3 слова как базу для поиска франшизы
+            const shortBase = words.length > 2 ? words.slice(0, 3).join(' ') : words.join(' ');
 
             if (shikiId) {
-                // Загружаем ВСЕ озвучки этого конкретного сезона
                 const allRes = await fetch(`https://kodikapi.com/search?token=${KODIK_TOKEN}&shikimori_id=${shikiId}&with_material_data=true`);
                 const allData = await allRes.json();
                 
-                // Ищем среди них ту, которая была в URL (если перешли из хронологии)
                 let preferredVariant = allData.results.find(r => r.translation.title === targetVoice) || allData.results[0];
                 
                 updateUI(allData.results, preferredVariant);
-                renderFranchise(cleanTitleForSearch, shikiId);
+                renderFranchise(shortBase, shikiId);
             } else {
                 updateUI(data.results, data.results[0]);
-                renderFranchise(cleanTitleForSearch, null);
+                renderFranchise(shortBase, null);
             }
             handleBookmarks();
         }
@@ -61,8 +61,7 @@ async function init() {
 function updateUI(allVariants, activeVariant) {
     const main = activeVariant.material_data || {};
     
-    // ПРИОРИТЕТ: берем год из самого объекта аниме, а не из "материалов",
-    // так как в материалах (мастер-карточке) часто стоит год 1-го сезона.
+    // ПРИОРИТЕТ ГОДА: берем из объекта сезона, чтобы Фрирен 2 не писала 2023 год
     const realYear = activeVariant.year || main.year || '—';
     
     currentAnimeName = main.anime_title || activeVariant.title;
@@ -73,11 +72,8 @@ function updateUI(allVariants, activeVariant) {
         if(el) el.innerText = val; 
     };
 
-    // Заполняем паспорт
     fill('title', currentAnimeName);
     fill('description', main.description || "Описание временно отсутствует.");
-    
-    // В мета-строке теперь тоже будет правильный год
     fill('meta', `${(activeVariant.type || 'Аниме').toUpperCase()} • ${main.shikimori_rating || 0} ⭐ • ${realYear}`);
     
     const poster = document.getElementById('poster');
@@ -85,10 +81,7 @@ function updateUI(allVariants, activeVariant) {
 
     fill('pass-duration', `${main.duration || '?'} мин.`);
     fill('pass-episodes', `${activeVariant.last_episode || '?'} / ${main.episodes_total || '?'}`);
-    
-    // И здесь тоже ставим приоритетный год
     fill('pass-year', realYear); 
-    
     fill('pass-genres', (main.anime_genres || []).join(', ') || '—');
     fill('pass-studio', (main.anime_studios || []).join(', ') || '—');
 
@@ -102,18 +95,12 @@ function loadPlayer(link, voiceTitle) {
     if (!iframe || !link) return;
 
     currentVoice = voiceTitle;
-    
-    // Чистим ссылку и подготавливаем разделитель (? или &)
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const sep = finalLink.includes('?') ? '&' : '?';
     
-    // ПАРАМЕТРЫ:
-    // episode=${currentEpisode} - запускаем нужную серию
-    // translations=false - ОТКЛЮЧАЕМ выбор озвучек в плеере (останутся только кнопки сайта)
-    // api=true - для отслеживания событий (прогресс, смена серии)
+    // translations=false убирает выбор озвучек в плеере, но оставляет серии и кнопку "Далее"
     iframe.src = `${finalLink}${sep}episode=${currentEpisode}&translations=false&api=true`;
 
-    // Интервал сохранения прогресса
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(() => {
         if (iframe.contentWindow) {
@@ -140,7 +127,7 @@ function renderTranslations(results, activeName) {
     });
 }
 
-/* --- 7. СТРОГАЯ ХРОНОЛОГИЯ --- */
+/* --- 7. УМНАЯ ХРОНОЛОГИЯ --- */
 async function renderFranchise(searchBase, currentShikiId) {
     const container = document.getElementById('franchise-list');
     if (!container) return;
@@ -157,6 +144,7 @@ async function renderFranchise(searchBase, currentShikiId) {
             let franchiseItems = data.results.filter(item => {
                 const sId = item.shikimori_id;
                 const itemTitle = (item.material_data?.anime_title || item.title).toLowerCase();
+                // Проверяем наличие короткой базы в названии, чтобы найти фильмы/сезоны с другими именами
                 return sId && !seenShiki.has(sId) && itemTitle.includes(searchLower) && seenShiki.add(sId);
             });
 
@@ -172,7 +160,6 @@ async function renderFranchise(searchBase, currentShikiId) {
                 
                 div.onclick = () => { 
                     if (!isActive) {
-                        // При переходе прокидываем текущую озвучку в URL
                         const voiceParam = currentVoice ? `&voice=${encodeURIComponent(currentVoice)}` : '';
                         location.href = `watch.html?id=${item.id}${voiceParam}`; 
                     }
@@ -183,7 +170,7 @@ async function renderFranchise(searchBase, currentShikiId) {
     } catch (e) { console.warn("Franchise error"); }
 }
 
-/* --- 8. ЗАКЛАДКИ И ПРОГРЕСС (БЕЗ ИЗМЕНЕНИЙ) --- */
+/* --- 8. ЗАКЛАДКИ --- */
 function handleBookmarks() {
     const btn = document.getElementById('btn-bookmark');
     const txt = document.getElementById('bookmark-text');
@@ -208,6 +195,7 @@ function handleBookmarks() {
     };
 }
 
+/* --- 9. ПРОГРЕСС --- */
 window.addEventListener('message', (e) => {
     let data = e.data;
     if (typeof data === 'string') { try { data = JSON.parse(data); } catch (err) { return; } }
