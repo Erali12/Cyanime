@@ -7,43 +7,115 @@
     <title>CyAnime — Просмотр</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Стили для страницы просмотра */
+        /* --- АДАПТИВНЫЕ СТИЛИ СТРАНИЦЫ ПРОСМОТРА --- */
         .anime-info-header { margin: 30px 0; }
-        .anime-title { font-size: 2.2rem; color: #fff; margin: 0 0 10px 0; font-weight: 700; line-height: 1.2; }
+        .anime-title { font-size: 2.2rem; color: var(--text-color); margin: 0 0 10px 0; font-weight: 700; line-height: 1.2; }
         .anime-meta { color: var(--accent-color); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
 
         .top-block-grid { display: grid; grid-template-columns: 300px 1fr; gap: 30px; margin-bottom: 25px; }
-        .poster-wrapper img { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .poster-wrapper img { width: 100%; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
-        .anime-passport { background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 25px; border-left: 4px solid var(--accent-color); color: #fff; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+        .anime-passport { 
+            background: var(--card-bg); 
+            border-radius: 12px; 
+            padding: 25px; 
+            border-left: 4px solid var(--accent-color); 
+            border-top: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color); 
+            height: 100%; 
+            box-sizing: border-box; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-start;
+        }
         .passport-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; margin-bottom: 20px; }
-        .passport-divider { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 20px; width: 100%; }
+        .passport-divider { border: 0; height: 1px; background: var(--border-color); margin-bottom: 20px; width: 100%; }
         .passport-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-        .passport-list li { margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px; font-size: 1.05rem; }
+        .passport-list li { margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; font-size: 1.05rem; }
         .passport-list li strong { color: var(--accent-color); margin-right: 15px; }
 
-        .content-block { background: var(--card-bg); padding: 30px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 30px; }
-        .synopsis { line-height: 1.7; color: #bbb; font-size: 1rem; margin-bottom: 25px; }
-        .translations-section { margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
+        /* КНОПКА ЗАКЛАДОК (СИНХРОНИЗИРОВАНО С ХЕДЕРОМ) */
+        .btn-bookmark {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 20px;
+            align-self: flex-start;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .btn-bookmark img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            filter: invert(0); /* Черная в светлой теме */
+            transition: 0.3s;
+        }
+
+        /* Инверсия иконки в темной теме */
+        [data-theme="dark"] .btn-bookmark img {
+            filter: invert(1); 
+        }
+
+        .btn-bookmark:hover {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #fff; /* Текст всегда белый при наведении на акцентный цвет */
+            box-shadow: var(--glow);
+            transform: translateY(-3px);
+        }
+
+        .btn-bookmark:hover img {
+            filter: brightness(0) invert(1) !important; /* Иконка всегда белая при ховере */
+        }
+
+        .btn-bookmark.active {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background: rgba(0, 139, 139, 0.05);
+        }
+
+        .content-block { background: var(--card-bg); padding: 30px; border-radius: 15px; border: 1px solid var(--border-color); margin-bottom: 30px; }
+        .synopsis { line-height: 1.7; color: var(--text-color); opacity: 0.8; font-size: 1rem; margin-bottom: 25px; }
+        .translations-section { margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; }
         .translation-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
-        .translation-btn { padding: 8px 15px; background: rgba(255,255,255,0.05); border: 1px solid transparent; color: #fff; border-radius: 6px; cursor: pointer; transition: 0.3s; }
-        .translation-btn:hover { background: rgba(255,255,255,0.1); }
-        .translation-btn.active { border-color: var(--accent-color); color: var(--accent-color); background: rgba(0,255,255,0.05); }
+        
+        .translation-btn { 
+            padding: 8px 15px; 
+            background: rgba(128,128,128,0.05); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-color); 
+            border-radius: 6px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        .translation-btn:hover { background: rgba(128,128,128,0.1); border-color: var(--accent-color); }
+        .translation-btn.active { border-color: var(--accent-color); color: var(--accent-color); background: rgba(0,139,139,0.1); font-weight: bold; }
 
         .player-block { margin-bottom: 50px; }
-        .player-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); border: 1px solid #222; }
+        .player-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 0 40px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); }
         iframe { width: 100%; height: 100%; border: none; }
         
-        .franchise-section { margin-top: 25px; background: rgba(255, 255, 255, 0.02); padding: 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .franchise-section { margin-top: 25px; background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid var(--border-color); }
         .franchise-list { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 15px; }
-        .franchise-item { padding: 10px 18px; background: rgba(255,255,255,0.05); border-radius: 8px; color: #bbb; cursor: pointer; transition: 0.3s; font-size: 0.95rem; }
-        .franchise-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .franchise-item.active { border: 1px solid var(--accent-color); background: rgba(0, 255, 255, 0.1); color: var(--accent-color); font-weight: bold; }
+        .franchise-item { padding: 10px 18px; background: rgba(128,128,128,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); cursor: pointer; transition: 0.3s; font-size: 0.95rem; opacity: 0.8; }
+        .franchise-item:hover { background: rgba(128,128,128,0.1); opacity: 1; border-color: var(--accent-color); }
+        .franchise-item.active { border: 1px solid var(--accent-color); background: rgba(0, 139, 139, 0.1); color: var(--accent-color); font-weight: bold; opacity: 1; }
 
         @media (max-width: 850px) { 
             .top-block-grid { grid-template-columns: 1fr; } 
             .poster-wrapper img { max-width: 250px; margin: 0 auto; display: block; }
-            .player-container { border-radius: 0; width: calc(100% + 40px); margin-left: -20px; }
+            .player-container { border-radius: 0; width: calc(100% + 30px); margin-left: -15px; }
         }
     </style>
     <link rel="icon" type="image/png" href="Assets/favicon.png">
@@ -75,8 +147,12 @@
                         <li><strong>Режиссер:</strong> <span id="pass-director">...</span></li>
                         <li><strong>Студия:</strong> <span id="pass-studio">...</span></li>
                         <li><strong>Жанры:</strong> <span id="pass-genres">...</span></li>
-                        <li><strong>Автор:</strong> <span id="pass-author">...</span></li>
+                        <li><strong>Автор:</strong> <span id="pass-author">—</span></li>
                     </ul>
+                    <button id="btn-bookmark" class="btn-bookmark">
+                        <img src="Assets/favourite.png" alt="Fav">
+                        <span id="bookmark-text">Сохранить это аниме</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -86,7 +162,7 @@
             <div id="description" class="synopsis">Получаем данные из базы...</div>
             
             <div class="translations-section">
-                <h4 style="color: #fff; margin: 0;">Выберите озвучку:</h4>
+                <h4 style="color: var(--text-color); margin: 0;">Выберите озвучку:</h4>
                 <div id="translation-list" class="translation-buttons"></div>
             </div>
         </div>
@@ -97,7 +173,7 @@
             </div>
             
             <div class="franchise-section">
-                <h3 style="margin: 0; color: #fff;">Хронология просмотра:</h3>
+                <h3 style="margin: 0; color: var(--text-color);">Хронология просмотра:</h3>
                 <div id="franchise-list" class="franchise-list"></div>
             </div>
         </div>
