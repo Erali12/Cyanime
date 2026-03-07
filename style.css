@@ -44,7 +44,7 @@ html, body {
     transition: background 0.3s;
 
     /* Динамический отступ: Высота хедера минус 50 пикселей */
-    padding-top: calc(var(--header-height, ) - 68px); 
+    padding-top: calc(var(--header-height, ) - 60px); 
 }
 
 /* Для мобилок тоже применяем формулу, чтобы зазор оставался пропорциональным */
