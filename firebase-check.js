@@ -49,7 +49,7 @@ onAuthStateChanged(auth, (user) => {
                             </a>
                         </li>
                         <li>
-                            <a href="favorites.html">
+                            <a href="favourite.html">
                                 <img src="Assets/favourite.png" class="menu-icon" alt="Fav"> 
                                 Избранные
                             </a>
