@@ -50,7 +50,7 @@ html, body {
 /* Для мобилок тоже применяем формулу, чтобы зазор оставался пропорциональным */
 @media (max-width: 768px) {
     html, body {
-        padding-top: calc(var(--header-height, ) - 50px);
+        padding-top: calc(var(--header-height, ) - 40px);
     }
 }
 
