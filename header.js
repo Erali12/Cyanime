@@ -4,7 +4,25 @@
 
     const page = document.body.getAttribute('data-page');
 
-    // 1. Собираем HTML (сохраняем все твои условия по страницам)
+    // --- 1. Функции управления меню (вынесены в window для onclick) ---
+    window.toggleNotifyMenu = (e) => {
+        if (e) e.stopPropagation();
+        // Закрываем меню профиля, если оно открыто (оно управляется другим скриптом, но ID мы знаем)
+        document.getElementById('user-dropdown')?.classList.remove('show');
+        
+        const notifyMenu = document.getElementById('notify-dropdown');
+        if (notifyMenu) notifyMenu.classList.toggle('show');
+    };
+
+    // Закрытие при клике в любое другое место
+    document.addEventListener('click', (e) => {
+        const notifyMenu = document.getElementById('notify-dropdown');
+        if (notifyMenu && !notifyMenu.contains(e.target)) {
+            notifyMenu.classList.remove('show');
+        }
+    });
+
+    // --- 2. Сборка HTML ---
     let headerHTML = `
         <div class="header-top-wrapper">
             <div class="header-content">
@@ -27,10 +45,20 @@
                                     <img src="Assets/login.png" alt="Войти" class="login-icon">
                                 </button>
                             </div>
+
                             ${page !== 'auth' ? `
-                            <button class="icon-btn">
-                                <img src="Assets/bell.png" class="header-icon" alt="Bell">
-                            </button>` : ''}
+                            <div class="notification-container" style="position: relative;">
+                                <button class="icon-btn" onclick="window.toggleNotifyMenu(event)">
+                                    <img src="Assets/bell.png" class="header-icon" alt="Bell">
+                                </button>
+                                
+                                <div id="notify-dropdown" class="dropdown-menu">
+                                    <div class="dropdown-header">Уведомления</div>
+                                    <div class="notify-content" style="padding: 20px; text-align: center; opacity: 0.6; font-size: 14px;">
+                                        У вас нет новых уведомлений
+                                    </div>
+                                </div>
+                            </div>` : ''}
                         </div>
                         
                         <div class="settings-section">
@@ -45,6 +73,7 @@
         </div>
     `;
 
+    // Нижняя часть (поиск/табы)
     if (page !== 'player' && page !== 'auth') {
         headerHTML += `
         <div class="header-bottom-wrapper">
@@ -75,7 +104,7 @@
 
     headerElement.innerHTML = headerHTML;
 
-    // 2. Логика темы (сразу после отрисовки)
+    // --- 3. Логика темы ---
     const themeBtn = document.getElementById('theme-btn');
     const sunIcon = document.querySelector('.sun-icon');
     const moonIcon = document.querySelector('.moon-icon');

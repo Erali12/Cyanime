@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta name="referrer" content="no-referrer">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyAnime — Мои закладки</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="Assets/favicon.png">
+</head>
+<body data-page="favorites">
+
+    <header id="main-header" class="main-header"></header>
+
+    <main class="container">
+        <div class="section-header" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+            <h1 class="section-title">Мои закладки</h1>
+            <p id="fav-count" style="opacity: 0.6; font-size: 0.95rem; margin: 0;">Загрузка...</p>
+        </div>
+
+        <div id="favorites-list" class="favorites-list">
+            </div>
+    </main>
+
+    <script src="header.js"></script>
+    <script src="script.js"></script>
+    <script type="module" src="firebase-check.js"></script>
+    <script type="module" src="favorites.js"></script>
+</body>
+</html>

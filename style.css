@@ -12,6 +12,9 @@
     --cyan-glow: var(--glow);
     --border-color: rgba(128, 128, 128, 0.2);
     --bg-input: #ffffff;
+    
+    /* Переменная для динамического отступа под хедером */
+    --header-height: 70px; 
 }
 
 [data-theme="dark"] {
@@ -27,18 +30,28 @@
 }
 
 * {
-    box-sizing: border-box; /* Чтобы паддинги не расширяли блоки */
+    box-sizing: border-box; 
 }
 
 html, body {
     max-width: 100%;
-    overflow-x: hidden; /* ГЛАВНЫЙ ФИКС ЛЮФТА */
+    overflow-x: hidden; 
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', system-ui, sans-serif;
     background: var(--bg-color);
     color: var(--text-color);
     transition: background 0.3s;
+
+    /* Динамический отступ: Высота хедера минус 50 пикселей */
+    padding-top: calc(var(--header-height, ) - 68px); 
+}
+
+/* Для мобилок тоже применяем формулу, чтобы зазор оставался пропорциональным */
+@media (max-width: 768px) {
+    html, body {
+        padding-top: calc(var(--header-height, ) - 50px);
+    }
 }
 
 /* --- 2. ЦЕНТРИРОВАНИЕ --- */
@@ -53,10 +66,15 @@ html, body {
 .main-header {
     background: var(--header-bg);
     box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-    position: sticky;
+    /* Делаем его фиксированным */
+    position: fixed; 
     top: 0;
+    left: 0;
+    width: 100%;
     z-index: 1000;
 }
+
+
 
 .header-top-wrapper { border-bottom: 1px solid rgba(128,128,128,0.15); }
 
@@ -403,23 +421,28 @@ iframe { width: 100%; height: 100%; border: none; }
     .settings-grid { grid-template-columns: 1fr; }
 }
 
-/* --- ЛОГИКА ВЫЕЗЖАЮЩЕЙ ПАНЕЛИ --- */
+/* --- 13. ЛОГИКА ВЫЕЗЖАЮЩЕЙ ПАНЕЛИ (ПОЛНАЯ ВЕРСИЯ С ФИКСОМ) --- */
 .filter-overlay {
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    /* Начинается под хедером */
+    top: var(--header-height, 70px); 
+    left: 0;
+    width: 100%; 
+    height: calc(100vh - var(--header-height, 70px)); 
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
     z-index: 2000;
-    display: none; /* Скрыто по дефолту */
+    display: none; 
     animation: fadeIn 0.3s ease;
 }
 
 .filter-aside {
     position: fixed;
-    top: 0; right: -100%; /* Прячем за экран справа */
-    width: 33.333%; /* 1/3 экрана на ПК */
-    height: 100%;
+    /* Начинается под хедером */
+    top: var(--header-height, 70px); 
+    right: -100%; 
+    width: 350px; 
+    height: calc(100vh - var(--header-height, 70px)); 
     background: var(--header-bg);
     z-index: 2001;
     box-shadow: -5px 0 30px rgba(0,0,0,0.5);
@@ -429,7 +452,7 @@ iframe { width: 100%; height: 100%; border: none; }
 }
 
 .filter-aside.active {
-    right: 0; /* Выезжаем */
+    right: 0; 
 }
 
 /* Шапка фильтров */
@@ -441,12 +464,18 @@ iframe { width: 100%; height: 100%; border: none; }
     border-bottom: 1px solid var(--border-color);
 }
 
-.filter-header h3 { margin: 0; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; }
+.filter-header h3 { 
+    margin: 0; 
+    color: var(--accent-color); 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+}
 
 #close-filters {
     background: none; border: none;
     color: var(--text-color); font-size: 2rem;
     cursor: pointer; opacity: 0.5; transition: 0.3s;
+    line-height: 1;
 }
 #close-filters:hover { opacity: 1; color: var(--accent-color); }
 
@@ -476,9 +505,90 @@ iframe { width: 100%; height: 100%; border: none; }
     display: flex !important; align-items: center !important; 
     gap: 10px; cursor: pointer; font-weight: 400 !important; 
 }
-.check-item input { width: 18px !important; height: 18px !important; cursor: pointer; }
+.check-item input { width: 18px !important; height: 18px !important; cursor: pointer; margin: 0; }
 
-/* Адаптив: на мобилках во весь экран */
+/* Адаптив: на мобилках во весь экран (но все еще под хедером) */
 @media (max-width: 768px) {
     .filter-aside { width: 100%; right: -100%; }
+}
+
+/* =========================================
+   СТРАНИЦА ЗАКЛАДОК (СУПЕР-МИНИМАЛИЗМ)
+   ========================================= */
+.favorites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.fav-item {
+    display: flex;
+    align-items: stretch; /* Растягивает детей по высоте */
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden; /* Обрезает края постера и кнопки по радиусу карточки */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 90px; /* Фиксированная высота для идеальных пропорций */
+}
+
+.fav-item:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Левая часть (Постер) */
+.fav-poster-full {
+    width: 65px; /* Ширина совпадает с зоной удаления */
+    height: 100%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* Центр (Текст) */
+.fav-text-center {
+    flex-grow: 1;
+    padding: 0 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden; /* Защита от слишком длинного текста */
+}
+
+.fav-text-center h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    font-weight: 600;
+    white-space: nowrap; /* Запрещает перенос строки */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Ставит троеточие, если название не влезает */
+}
+
+.fav-text-center p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0.6;
+}
+
+/* Правая часть (Зона удаления) */
+.fav-delete-zone {
+    width: 65px; /* Ширина совпадает с постером */
+    flex-shrink: 0;
+    background: rgba(255, 0, 0, 0.05); /* Легкий красноватый оттенок по умолчанию */
+    color: rgba(255, 0, 0, 0.5); /* Полупрозрачный крестик */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    transition: all 0.3s ease;
+}
+
+.fav-delete-zone:hover {
+    background: #ff4d4d; /* Ярко-красный при наведении */
+    color: #fff;
 }
