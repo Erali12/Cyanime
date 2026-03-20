@@ -34,10 +34,9 @@ async function init() {
             const base = data.results[0];
             const shikiId = base.shikimori_id;
 
-            // УМНОЕ ОПРЕДЕЛЕНИЕ БАЗОВОГО ИМЕНИ (Для сложных названий типа "Свинья")
+            // УМНОЕ ОПРЕДЕЛЕНИЕ БАЗОВОГО ИМЕНИ
             let rawTitle = (base.material_data?.anime_title || base.title).split('/')[0].split(':')[0].trim();
             let words = rawTitle.split(' ');
-            // Берем первые 3 слова как базу для поиска франшизы
             const shortBase = words.length > 2 ? words.slice(0, 3).join(' ') : words.join(' ');
 
             if (shikiId) {
@@ -61,7 +60,6 @@ async function init() {
 function updateUI(allVariants, activeVariant) {
     const main = activeVariant.material_data || {};
     
-    // ПРИОРИТЕТ ГОДА: берем из объекта сезона, чтобы Фрирен 2 не писала 2023 год
     const realYear = activeVariant.year || main.year || '—';
     
     currentAnimeName = main.anime_title || activeVariant.title;
@@ -98,7 +96,6 @@ function loadPlayer(link, voiceTitle) {
     let finalLink = link.startsWith('http') ? link : `https:${link}`;
     const sep = finalLink.includes('?') ? '&' : '?';
     
-    // translations=false убирает выбор озвучек в плеере, но оставляет серии и кнопку "Далее"
     iframe.src = `${finalLink}${sep}episode=${currentEpisode}&translations=false&api=true`;
 
     if (saveInterval) clearInterval(saveInterval);
@@ -106,7 +103,7 @@ function loadPlayer(link, voiceTitle) {
         if (iframe.contentWindow) {
             iframe.contentWindow.postMessage({ key: 'kodik_player_get_info' }, '*');
         }
-    }, 15000);
+    }, 15000); // Пингуем плеер каждые 15 сек
 }
 
 function renderTranslations(results, activeName) {
@@ -144,7 +141,6 @@ async function renderFranchise(searchBase, currentShikiId) {
             let franchiseItems = data.results.filter(item => {
                 const sId = item.shikimori_id;
                 const itemTitle = (item.material_data?.anime_title || item.title).toLowerCase();
-                // Проверяем наличие короткой базы в названии, чтобы найти фильмы/сезоны с другими именами
                 return sId && !seenShiki.has(sId) && itemTitle.includes(searchLower) && seenShiki.add(sId);
             });
 
@@ -195,16 +191,30 @@ function handleBookmarks() {
     };
 }
 
-/* --- 9. ПРОГРЕСС --- */
+/* --- 9. ПРОГРЕСС И СИНХРОНИЗАЦИЯ С ОБЛАКОМ --- */
 window.addEventListener('message', (e) => {
     let data = e.data;
     if (typeof data === 'string') { try { data = JSON.parse(data); } catch (err) { return; } }
+    
     if (data.key === 'kodik_player_video_info' || data.key === 'kodik_player_time_update') {
         if (data.value && data.value.episode) {
             const newEp = data.value.episode.toString();
+            
+            // 1. Сохраняем локально всегда
             if (newEp !== currentEpisode) {
                 currentEpisode = newEp;
                 localStorage.setItem(`ep_${animeId}`, currentEpisode);
+            }
+
+            // 2. Отправляем в облако через history.js (вызывается каждые 15 сек через saveInterval)
+            if (window.saveToHistoryCloud && currentUserUid) {
+                window.saveToHistoryCloud(currentUserUid, {
+                    id: animeId,
+                    n: currentAnimeName,
+                    e: currentEpisode,
+                    v: currentVoice,
+                    p: currentPoster // Добавил постер!
+                });
             }
         }
     }

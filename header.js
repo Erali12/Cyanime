@@ -6,34 +6,28 @@ import { supabase } from './supabase-config.js';
 
     const page = document.body.getAttribute('data-page');
 
-    // --- 1. Функции управления меню (window для onclick) ---
+    // --- 1. Функции управления меню ---
     window.toggleNotifyMenu = (e) => {
         if (e) e.stopPropagation();
-        window.closeUserMenu(); // Закрываем профиль, если открываем уведомления
         const notifyMenu = document.getElementById('notify-dropdown');
-        if (notifyMenu) notifyMenu.classList.toggle('show');
+        const profileMenu = document.getElementById('user-dropdown');
+        
+        profileMenu?.classList.remove('show'); // Закрываем профиль
+        notifyMenu?.classList.toggle('show');
     };
 
-    // НОВАЯ: Функция для твоей Aside-панели
     window.toggleUserMenu = (e) => {
         if (e) e.stopPropagation();
         const notifyMenu = document.getElementById('notify-dropdown');
-        notifyMenu?.classList.remove('show'); // Закрываем уведомления
+        const profileMenu = document.getElementById('user-dropdown');
 
-        const aside = document.getElementById('user-aside');
-        const overlay = document.getElementById('filter-overlay');
-        
-        if (aside && overlay) {
-            aside.classList.toggle('active');
-            overlay.style.display = aside.classList.contains('active') ? 'block' : 'none';
-        }
+        notifyMenu?.classList.remove('show'); // Закрываем уведомления
+        profileMenu?.classList.toggle('show');
     };
 
-    window.closeUserMenu = () => {
-        const aside = document.getElementById('user-aside');
-        const overlay = document.getElementById('filter-overlay');
-        aside?.classList.remove('active');
-        if (overlay) overlay.style.display = 'none';
+    window.closeAllMenus = () => {
+        document.getElementById('notify-dropdown')?.classList.remove('show');
+        document.getElementById('user-dropdown')?.classList.remove('show');
     };
 
     window.handleLogout = async () => {
@@ -41,13 +35,13 @@ import { supabase } from './supabase-config.js';
         window.location.href = 'index.html';
     };
 
+    // Закрытие при клике в любое место экрана
     document.addEventListener('click', (e) => {
-        const notifyMenu = document.getElementById('notify-dropdown');
-        if (notifyMenu && !notifyMenu.contains(e.target)) {
-            notifyMenu.classList.remove('show');
+        const isButton = e.target.closest('.icon-btn') || e.target.closest('.auth-btn');
+        const isMenu = e.target.closest('.dropdown-menu');
+        if (!isButton && !isMenu) {
+            window.closeAllMenus();
         }
-        // Закрытие профиля при клике на оверлей
-        if (e.target.id === 'filter-overlay') window.closeUserMenu();
     });
 
     // --- 2. Сборка HTML ---
@@ -68,11 +62,11 @@ import { supabase } from './supabase-config.js';
 
                     <div class="header-right">
                         <div class="user-section">
-                            <div id="auth-block" class="auth-container">
+                            <div id="auth-block" class="auth-container" style="position: relative;">
                                 <button class="auth-btn login-btn" onclick="window.location.href='auth.html'">
                                     <img src="Assets/login.png" alt="Войти" class="login-icon">
                                 </button>
-                            </div>
+                                </div>
 
                             ${page !== 'auth' ? `
                             <div class="notification-container" style="position: relative;">
@@ -130,44 +124,33 @@ import { supabase } from './supabase-config.js';
         </div>`;
     }
 
-    // ВАЖНО: Добавляем саму разметку Aside в конец хедера
-    headerHTML += `
-        <div id="filter-overlay" class="filter-overlay"></div>
-        <aside id="user-aside" class="filter-aside">
-            <div class="filter-header">
-                <h3>Профиль</h3>
-                <button id="close-filters" onclick="window.closeUserMenu()">×</button>
-            </div>
-            <div class="filter-content">
-                <div class="filter-group">
-                    <a href="settings.html" class="btn-cyan" style="text-decoration:none; text-align:center;">⚙️ Настройки</a>
-                </div>
-                <div class="filter-group">
-                    <a href="favourite.html" class="btn-cyan" style="text-decoration:none; text-align:center;">❤️ Избранные</a>
-                </div>
-                <div class="filter-group" style="opacity:0.5;">
-                    <label>👥 Друзья (скоро)</label>
-                </div>
-                <div style="margin-top: auto; padding-bottom: 20px;">
-                    <button onclick="window.handleLogout()" class="btn-cyan" style="width:100%; background:#ff4d4d; border:none; cursor:pointer;">Выйти</button>
-                </div>
-            </div>
-        </aside>
-    `;
-
     headerElement.innerHTML = headerHTML;
 
-    // --- 3. Проверка авторизации Supabase ---
+    // --- 3. Проверка авторизации и замена кнопки на выпадающее меню ---
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
         const authBlock = document.getElementById('auth-block');
         if (authBlock) {
             const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || 'Assets/user-avatar.png';
-            // Заменяем кнопку входа на кнопку вызова Aside-меню
+            
             authBlock.innerHTML = `
                 <button class="icon-btn" onclick="window.toggleUserMenu(event)" style="padding: 0; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer;">
-                    <img src="${avatarUrl}" alt="Профиль" class="header-icon" style="border-radius:50%; width:32px; height:32px; object-fit:cover; border: 2px solid var(--accent-color);">
+                    <img src="${avatarUrl}" alt="Профиль" class="header-icon" style="border-radius:50%; width:32px; height:32px; min-width:32px; flex-shrink:0; object-fit:cover; border: 2px solid var(--accent-color);">
                 </button>
+                
+                <div id="user-dropdown" class="dropdown-menu">
+                    <div class="dropdown-header">Профиль</div>
+                    <div class="dropdown-content">
+                        <a href="settings.html" class="dropdown-item">
+                            <img src="Assets/settings.png" alt="Settings" style="width:18px;"> Настройки
+                        </a>
+                        <a href="favourite.html" class="dropdown-item">
+                            <img src="Assets/favourite.png" alt="Favs" style="width:18px;"> Избранные
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button onclick="window.handleLogout()" class="dropdown-logout">Выйти</button>
+                    </div>
+                </div>
             `;
         }
     }
