@@ -6,13 +6,39 @@ import { supabase } from './supabase-config.js';
 
     const page = document.body.getAttribute('data-page');
 
-    // --- 1. Функции управления меню (вынесены в window для onclick) ---
+    // --- 1. Функции управления меню (window для onclick) ---
     window.toggleNotifyMenu = (e) => {
         if (e) e.stopPropagation();
-        document.getElementById('user-dropdown')?.classList.remove('show');
-        
+        window.closeUserMenu(); // Закрываем профиль, если открываем уведомления
         const notifyMenu = document.getElementById('notify-dropdown');
         if (notifyMenu) notifyMenu.classList.toggle('show');
+    };
+
+    // НОВАЯ: Функция для твоей Aside-панели
+    window.toggleUserMenu = (e) => {
+        if (e) e.stopPropagation();
+        const notifyMenu = document.getElementById('notify-dropdown');
+        notifyMenu?.classList.remove('show'); // Закрываем уведомления
+
+        const aside = document.getElementById('user-aside');
+        const overlay = document.getElementById('filter-overlay');
+        
+        if (aside && overlay) {
+            aside.classList.toggle('active');
+            overlay.style.display = aside.classList.contains('active') ? 'block' : 'none';
+        }
+    };
+
+    window.closeUserMenu = () => {
+        const aside = document.getElementById('user-aside');
+        const overlay = document.getElementById('filter-overlay');
+        aside?.classList.remove('active');
+        if (overlay) overlay.style.display = 'none';
+    };
+
+    window.handleLogout = async () => {
+        await supabase.auth.signOut();
+        window.location.href = 'index.html';
     };
 
     document.addEventListener('click', (e) => {
@@ -20,6 +46,8 @@ import { supabase } from './supabase-config.js';
         if (notifyMenu && !notifyMenu.contains(e.target)) {
             notifyMenu.classList.remove('show');
         }
+        // Закрытие профиля при клике на оверлей
+        if (e.target.id === 'filter-overlay') window.closeUserMenu();
     });
 
     // --- 2. Сборка HTML ---
@@ -102,18 +130,44 @@ import { supabase } from './supabase-config.js';
         </div>`;
     }
 
+    // ВАЖНО: Добавляем саму разметку Aside в конец хедера
+    headerHTML += `
+        <div id="filter-overlay" class="filter-overlay"></div>
+        <aside id="user-aside" class="filter-aside">
+            <div class="filter-header">
+                <h3>Профиль</h3>
+                <button id="close-filters" onclick="window.closeUserMenu()">×</button>
+            </div>
+            <div class="filter-content">
+                <div class="filter-group">
+                    <a href="settings.html" class="btn-cyan" style="text-decoration:none; text-align:center;">⚙️ Настройки</a>
+                </div>
+                <div class="filter-group">
+                    <a href="favourite.html" class="btn-cyan" style="text-decoration:none; text-align:center;">❤️ Избранные</a>
+                </div>
+                <div class="filter-group" style="opacity:0.5;">
+                    <label>👥 Друзья (скоро)</label>
+                </div>
+                <div style="margin-top: auto; padding-bottom: 20px;">
+                    <button onclick="window.handleLogout()" class="btn-cyan" style="width:100%; background:#ff4d4d; border:none; cursor:pointer;">Выйти</button>
+                </div>
+            </div>
+        </aside>
+    `;
+
     headerElement.innerHTML = headerHTML;
 
-    // --- 3. Проверка авторизации Supabase и замена кнопки на аватарку ---
+    // --- 3. Проверка авторизации Supabase ---
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
         const authBlock = document.getElementById('auth-block');
         if (authBlock) {
             const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || 'Assets/user-avatar.png';
+            // Заменяем кнопку входа на кнопку вызова Aside-меню
             authBlock.innerHTML = `
-                <a href="settings.html" class="auth-btn" style="text-decoration:none; padding: 0; display: flex; align-items: center; justify-content: center;">
-                    <img src="${avatarUrl}" alt="Профиль" class="header-icon" style="border-radius:50%; width:32px; height:32px; object-fit:cover;">
-                </a>
+                <button class="icon-btn" onclick="window.toggleUserMenu(event)" style="padding: 0; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer;">
+                    <img src="${avatarUrl}" alt="Профиль" class="header-icon" style="border-radius:50%; width:32px; height:32px; object-fit:cover; border: 2px solid var(--accent-color);">
+                </button>
             `;
         }
     }
