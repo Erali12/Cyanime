@@ -93,7 +93,13 @@ function loadPlayer(link, voiceTitle) {
     if (!iframe || !link) return;
 
     currentVoice = voiceTitle;
-    let finalLink = link.startsWith('http') ? link : `https:${link}`;
+    
+    // --- УМНЫЙ ФИКС ЗЕРКАЛ KODIK ---
+    // API Кодика часто отдает заблокированные домены (.info или .biz)
+    // Мы принудительно меняем их на актуальное зеркало kodik.cc
+    let safeLink = link.replace(/kodik\.(info|biz)/g, 'kodik.cc');
+
+    let finalLink = safeLink.startsWith('http') ? safeLink : `https:${safeLink}`;
     const sep = finalLink.includes('?') ? '&' : '?';
     
     iframe.src = `${finalLink}${sep}episode=${currentEpisode}&translations=false&api=true`;
