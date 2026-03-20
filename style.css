@@ -421,95 +421,128 @@ iframe { width: 100%; height: 100%; border: none; }
     .settings-grid { grid-template-columns: 1fr; }
 }
 
-/* --- 13. ЛОГИКА ВЫЕЗЖАЮЩЕЙ ПАНЕЛИ (ПОЛНАЯ ВЕРСИЯ С ФИКСОМ) --- */
-.filter-overlay {
-    position: fixed;
-    /* Начинается под хедером */
-    top: var(--header-height, 70px); 
-    left: 0;
-    width: 100%; 
-    height: calc(100vh - var(--header-height, 70px)); 
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    z-index: 2000;
-    display: none; 
-    animation: fadeIn 0.3s ease;
+/* --- 13. ЛОГИКА ВЫПАДАЮЩИХ МЕНЮ (DROPDOWNS) --- */
+
+/* Контейнеры кнопок должны быть относительными, чтобы меню липло к ним */
+.auth-container, .notification-container {
+    position: relative;
 }
 
-.filter-aside {
-    position: fixed;
-    /* Начинается под хедером */
-    top: var(--header-height, 70px); 
-    right: -100%; 
-    width: 350px; 
-    height: calc(100vh - var(--header-height, 70px)); 
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 15px); /* Дистанция от кнопки */
+    right: 0;               /* Прижимаем правый край к правому краю кнопки */
+    width: 280px;
     background: var(--header-bg);
-    z-index: 2001;
-    box-shadow: -5px 0 30px rgba(0,0,0,0.5);
-    transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    display: flex;
-    flex-direction: column;
-}
-
-.filter-aside.active {
-    right: 0; 
-}
-
-/* Шапка фильтров */
-.filter-header {
-    padding: 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.filter-header h3 { 
-    margin: 0; 
-    color: var(--accent-color); 
-    text-transform: uppercase; 
-    letter-spacing: 1px; 
-}
-
-#close-filters {
-    background: none; border: none;
-    color: var(--text-color); font-size: 2rem;
-    cursor: pointer; opacity: 0.5; transition: 0.3s;
-    line-height: 1;
-}
-#close-filters:hover { opacity: 1; color: var(--accent-color); }
-
-/* Контент фильтров */
-.filter-content {
-    padding: 25px;
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-    overflow-y: auto;
-}
-
-.filter-group { display: flex; flex-direction: column; gap: 10px; }
-.filter-group label { font-weight: 600; font-size: 0.9rem; color: var(--text-color); opacity: 0.8; }
-
-.filter-group select, .filter-group input {
-    width: 100%; padding: 12px;
-    background: var(--bg-input);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 15px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    z-index: 3000;
+    
+    /* Состояние по умолчанию (скрыто) */
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.8);      /* Уменьшено для анимации */
+    transform-origin: top right; /* Анимация тянется из правого верхнего угла */
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Пружинистый эффект */
+    
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+/* Когда добавляется класс .show через JS */
+.dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+/* Шапка внутри меню */
+.dropdown-header {
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 700;
+    color: var(--accent-color);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Контент и элементы списка */
+.dropdown-content {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
     color: var(--text-color);
-    outline: none;
+    text-decoration: none;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    transition: 0.2s;
 }
 
-.checkbox-stack { display: flex; flex-direction: column; gap: 12px; }
-.check-item { 
-    display: flex !important; align-items: center !important; 
-    gap: 10px; cursor: pointer; font-weight: 400 !important; 
+.dropdown-item img {
+    opacity: 0.8;
+    transition: 0.2s;
 }
-.check-item input { width: 18px !important; height: 18px !important; cursor: pointer; margin: 0; }
 
-/* Адаптив: на мобилках во весь экран (но все еще под хедером) */
-@media (max-width: 768px) {
-    .filter-aside { width: 100%; right: -100%; }
+.dropdown-item:hover {
+    background: var(--bg-input);
+    color: var(--accent-color);
+}
+
+.dropdown-item:hover img {
+    opacity: 1;
+    transform: translateX(3px);
+}
+
+/* Разделитель */
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 8px 15px;
+}
+
+/* Кнопка выхода */
+.dropdown-logout {
+    width: calc(100% - 20px);
+    margin: 5px 10px 10px 10px;
+    padding: 12px;
+    background: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+    border: 1px solid rgba(255, 77, 77, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.dropdown-logout:hover {
+    background: #ff4d4d;
+    color: white;
+}
+
+/* Для уведомлений (если там просто текст) */
+.notify-content {
+    padding: 20px;
+    color: var(--text-color);
+    opacity: 0.7;
+    font-size: 0.9rem;
+}
+
+/* Адаптив: на мобилках чуть шире или по центру, если нужно */
+@media (max-width: 480px) {
+    .dropdown-menu {
+        width: 250px;
+        right: -10px; /* Немного смещаем, чтобы не прилипало к краю экрана */
+    }
 }
 
 /* =========================================
