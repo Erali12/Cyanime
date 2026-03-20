@@ -1,44 +1,59 @@
-import { auth } from "./firebase-config.js";
-import { onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+import { supabase } from "./supabase-config.js";
 
-onAuthStateChanged(auth, (user) => {
+async function initSettings() {
+    const { data: { user } } = await supabase.auth.getUser();
+
     if (!user) {
         window.location.href = 'auth.html';
         return;
     }
 
-    // Заполняем данные
-    document.getElementById('settings-username').innerText = user.displayName || 'Пользователь CyAnime';
+    // Заполняем данные (Supabase хранит инфу от Google в user_metadata)
+    const displayName = user.user_metadata?.full_name || user.email.split('@')[0] || 'Пользователь CyAnime';
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || 'Assets/user-avatar.png';
+
+    document.getElementById('settings-username').innerText = displayName;
     document.getElementById('settings-email').innerText = user.email;
-    document.getElementById('settings-avatar').src = user.photoURL || 'Assets/user-avatar.png';
+    document.getElementById('settings-avatar').src = avatarUrl;
     
     // Загружаем возраст из памяти
-    const savedAge = localStorage.getItem(`age_${user.uid}`);
+    const savedAge = localStorage.getItem(`age_${user.id}`);
     if (savedAge) document.getElementById('settings-age').value = savedAge;
 
-    // Проверяем способ входа (если пароль — показываем кнопку смены)
-    const isPasswordUser = user.providerData.some(p => p.providerId === 'password');
+    // Проверяем способ входа (если email — показываем кнопку смены)
+    const isPasswordUser = user.app_metadata?.provider === 'email';
     if (isPasswordUser) {
-        document.getElementById('password-change-block').style.display = 'block';
+        const changePassBlock = document.getElementById('password-change-block');
+        if (changePassBlock) changePassBlock.style.display = 'block';
     }
-});
 
-// Сохранение настроек
-document.getElementById('save-settings').addEventListener('click', () => {
-    const user = auth.currentUser;
-    if (user) {
+    // Сохранение настроек (возраст)
+    document.getElementById('save-settings')?.addEventListener('click', () => {
         const age = document.getElementById('settings-age').value;
-        localStorage.setItem(`age_${user.uid}`, age);
+        localStorage.setItem(`age_${user.id}`, age);
         alert('Настройки сохранены в памяти браузера!');
-    }
-});
+    });
 
-// Логика смены пароля
-document.getElementById('btn-change-pass')?.addEventListener('click', () => {
-    const newPass = prompt("Введите новый пароль:");
-    if (newPass && newPass.length >= 6) {
-        updatePassword(auth.currentUser, newPass)
-            .then(() => alert("Пароль успешно изменен!"))
-            .catch(err => alert("Ошибка: " + err.message));
-    }
-});
+    // Логика смены пароля Supabase
+    document.getElementById('btn-change-pass')?.addEventListener('click', async () => {
+        const newPass = prompt("Введите новый пароль (минимум 6 символов):");
+        if (newPass && newPass.length >= 6) {
+            const { error } = await supabase.auth.updateUser({ password: newPass });
+            if (error) {
+                alert("Ошибка: " + error.message);
+            } else {
+                alert("Пароль успешно изменен!");
+            }
+        } else if (newPass) {
+            alert("Пароль слишком короткий.");
+        }
+    });
+
+    // Добавляем кнопку выхода на всякий случай, если ты захочешь её добавить в HTML
+    document.getElementById('btn-logout')?.addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        window.location.href = 'index.html';
+    });
+}
+
+initSettings();

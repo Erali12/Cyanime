@@ -1,6 +1,5 @@
 /* --- 1. ИМПОРТЫ И КОНСТАНТЫ --- */
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { auth } from "./firebase-config.js";
+import { supabase } from "./supabase-config.js";
 
 const KODIK_TOKEN = 'cc25b08a2d09435ad1818ce358fd407d';
 const wParams = new URLSearchParams(window.location.search);
@@ -20,8 +19,9 @@ if (animeId) {
     init();
 }
 
-onAuthStateChanged(auth, (user) => { 
-    currentUserUid = user ? user.uid : null;
+// Получаем текущего пользователя через Supabase
+supabase.auth.getUser().then(({ data: { user } }) => {
+    currentUserUid = user ? user.id : null;
 });
 
 /* --- 4. ОСНОВНАЯ ЛОГИКА ЗАГРУЗКИ --- */

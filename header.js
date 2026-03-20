@@ -1,4 +1,6 @@
-(function() {
+import { supabase } from './supabase-config.js';
+
+(async function() {
     const headerElement = document.getElementById('main-header');
     if (!headerElement) return;
 
@@ -7,14 +9,12 @@
     // --- 1. Функции управления меню (вынесены в window для onclick) ---
     window.toggleNotifyMenu = (e) => {
         if (e) e.stopPropagation();
-        // Закрываем меню профиля, если оно открыто (оно управляется другим скриптом, но ID мы знаем)
         document.getElementById('user-dropdown')?.classList.remove('show');
         
         const notifyMenu = document.getElementById('notify-dropdown');
         if (notifyMenu) notifyMenu.classList.toggle('show');
     };
 
-    // Закрытие при клике в любое другое место
     document.addEventListener('click', (e) => {
         const notifyMenu = document.getElementById('notify-dropdown');
         if (notifyMenu && !notifyMenu.contains(e.target)) {
@@ -41,7 +41,7 @@
                     <div class="header-right">
                         <div class="user-section">
                             <div id="auth-block" class="auth-container">
-                                <button class="auth-btn login-btn" onclick="toggleAuth()">
+                                <button class="auth-btn login-btn" onclick="window.location.href='auth.html'">
                                     <img src="Assets/login.png" alt="Войти" class="login-icon">
                                 </button>
                             </div>
@@ -104,7 +104,21 @@
 
     headerElement.innerHTML = headerHTML;
 
-    // --- 3. Логика темы ---
+    // --- 3. Проверка авторизации Supabase и замена кнопки на аватарку ---
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        const authBlock = document.getElementById('auth-block');
+        if (authBlock) {
+            const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || 'Assets/user-avatar.png';
+            authBlock.innerHTML = `
+                <a href="settings.html" class="auth-btn" style="text-decoration:none; padding: 0; display: flex; align-items: center; justify-content: center;">
+                    <img src="${avatarUrl}" alt="Профиль" class="header-icon" style="border-radius:50%; width:32px; height:32px; object-fit:cover;">
+                </a>
+            `;
+        }
+    }
+
+    // --- 4. Логика темы ---
     const themeBtn = document.getElementById('theme-btn');
     const sunIcon = document.querySelector('.sun-icon');
     const moonIcon = document.querySelector('.moon-icon');
