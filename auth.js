@@ -1,31 +1,8 @@
-// auth.js
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-import { 
-    getAuth, 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    GoogleAuthProvider, 
-    signInWithPopup 
-} from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-
-// Конфиг (вставь свои данные, если импорт из firebase-config не работает)
-const firebaseConfig = {
-    apiKey: "AIzaSyArmd5exJXyzQUjmCorgYJ4Dp8ABoDL5H4",
-    authDomain: "cyanime-b815d.firebaseapp.com",
-    projectId: "cyanime-b815d",
-    storageBucket: "cyanime-b815d.firebasestorage.app",
-    messagingSenderId: "164002168918",
-    appId: "1:164002168918:web:4a2ebb5295a996a41efbf7"
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
+import { supabase } from './supabase-config.js';
 
 window.currentAuthType = 'login';
 
+// Переключение вкладок (Вход / Регистрация)
 window.switchAuth = (type) => {
     const loginTab = document.getElementById('login-tab');
     const regTab = document.getElementById('reg-tab');
@@ -33,50 +10,68 @@ window.switchAuth = (type) => {
     window.currentAuthType = type;
     
     if (type === 'login') {
-        loginTab.classList.add('active');
-        regTab.classList.remove('active');
-        submitBtn.innerText = 'Поехали!';
+        loginTab?.classList.add('active');
+        regTab?.classList.remove('active');
+        if (submitBtn) submitBtn.innerText = 'Поехали!';
     } else {
-        regTab.classList.add('active');
-        loginTab.classList.remove('active');
-        submitBtn.innerText = 'Создать аккаунт';
+        regTab?.classList.add('active');
+        loginTab?.classList.remove('active');
+        if (submitBtn) submitBtn.innerText = 'Создать аккаунт';
     }
 }
 
-// Почта + Пароль
+// Почта + Пароль (Supabase Auth)
 document.getElementById('auth-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('auth-email').value;
-    const pass = document.getElementById('auth-pass').value;
+    const password = document.getElementById('auth-pass').value;
 
     try {
         if (window.currentAuthType === 'reg') {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-            await setDoc(doc(db, "users", userCredential.user.uid), { h: [], p: { theme: 'dark' } });
-            alert('Регистрация успешна!');
+            // Регистрация
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (error) throw error;
+
+            if (data.user) {
+                alert('Регистрация успешна! Проверьте почту для подтверждения.');
+                // Автоматически создаем профиль в нашей таблице profiles
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert([{ id: data.user.id, username: email.split('@')[0] }]);
+                
+                if (profileError) console.error("Ошибка профиля:", profileError);
+            }
         } else {
-            await signInWithEmailAndPassword(auth, email, pass);
+            // Вход
+            const { error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) throw error;
+            window.location.href = 'index.html';
         }
-        window.location.href = 'index.html';
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        alert('Ошибка: ' + error.message); [cite: 30]
     }
 });
 
-// Google Кнопка (Исправлено)
+// Google Авторизация через Supabase
 document.getElementById('google-auth')?.addEventListener('click', async () => {
     try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-
-        if (!userSnap.exists()) {
-            await setDoc(userRef, { h: [], p: { theme: 'dark' } });
-        }
-        window.location.href = 'index.html';
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin + '/index.html'
+            }
+        });
+        if (error) throw error;
     } catch (error) {
-        console.error("Google Auth Error:", error);
+        console.error("OAuth Error:", error);
         alert('Ошибка Google: ' + error.message);
     }
 });
